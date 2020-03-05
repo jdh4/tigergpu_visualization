@@ -50,6 +50,8 @@ def create_image():
   _, _, timestamps = zip(*usage_user.keys())
   times = sorted(set(timestamps))
   times = times[-num_snapshots:]
+  # next line prevents IndexError in ax[idx, j] when script ran for first time
+  if len(times) == 1: times = 2 * times
   fig, ax = plt.subplots(nrows=num_gpus, ncols=len(times), figsize=(10, 80))
   for i, node in enumerate(nodes):
       for gpu_index in range(gpus_per_node):
@@ -141,5 +143,5 @@ for node in nodes:
     pass
 
 process_all_files()
-create_image()
+if usage_user: create_image()
 remove_old_files()
