@@ -99,7 +99,7 @@ def create_image():
             ax[idx, j].xaxis.set_label_position('top')
             ax[idx, j].set_xlabel(stamp, fontsize=12, rotation=0, ha='center', va='bottom')
   # -d and -I remove zero padding (linux only)
-  fig.suptitle('TigerGPU Utilization on ' + str(dt.strftime("%-d %b %Y (%-I:%M %p)")), \
+  fig.suptitle('TigerGPU Utilization (' + str(dt.strftime("%-d %b %Y")) + ')', \
                y=0.997, ha='center', fontsize=18)
   fig.tight_layout(pad=0, w_pad=0, h_pad=0, rect=(0, 0, 1, 0.99))
   plt.savefig('tigergpu_utilization.png')
