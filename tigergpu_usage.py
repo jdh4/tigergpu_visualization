@@ -117,7 +117,7 @@ def remove_old_files():
         os.remove(gpufile)
 
 # generate the node names
-nodes = ['tiger-i' + str(j) + 'g' + str(i+1) for i in range(16) for j in [19, 20, 21, 22, 23]]
+nodes = ['tiger-i' + str(i) + 'g' + str(j+1) for i in [19, 20, 21, 22, 23] for j in range(16)]
 nodes.remove('tiger-i19g5')
 nodes.remove('tiger-i23g13')
 assert len(nodes) == 78, "Assert: Node count"
