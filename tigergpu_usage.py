@@ -134,7 +134,7 @@ timestamp = str(int(time()))
 for node in nodes:
   gpustat_file = node + "." + timestamp + ".gpustat"
   cmd = "ssh -o ConnectTimeout=5 " + node + " \"gpustat > /scratch/gpfs/jdh4/gpustat/" + \
-         gpustat_file + "\""
+         gpustat_file + "\" > /dev/null 2>&1"
   try:
      # run the command via ssh on the compute nodes
      _ = subprocess.run(cmd, shell=True)
