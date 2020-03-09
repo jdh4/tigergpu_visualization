@@ -9,5 +9,6 @@ REMAIN=$(($HOUR % 2))
 if [[ $REMAIN -eq 0 && $MINUTES -lt 10 ]]; then
    MONTH=$(date +%b)
    DAY=$(date +%d)
-   cp tigergpu_utilization.png tigergpu_utilization_${DAY}_${MONTH}_${HOUR}_${MINUTES}.png
+   MYPATH=/scratch/gpfs/jdh4/gpustat/history
+   mv tigergpu_utilization.png ${MYPATH}/tigergpu_utilization_${DAY}_${MONTH}_${HOUR}_${MINUTES}.png
 fi
