@@ -80,7 +80,7 @@ def create_image():
           ax[idx, j].get_xaxis().set_ticks([])
           ax[idx, j].get_yaxis().set_ticks([])
           # set cell and labels text
-          txtclr = 'w' if (usage < 25) else 'k'
+          txtclr = 'w' if (usage < 25 or username == '') else 'k'
           if (username == ''):
             celltext = 'IDLE'
           elif (username == 'NO INFO'):
