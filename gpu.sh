@@ -12,3 +12,5 @@ if [[ $REMAIN -eq 0 && $MINUTES -lt 10 ]]; then
    MYPATH=/scratch/gpfs/jdh4/gpustat/history
    mv tigergpu_utilization.png ${MYPATH}/tigergpu_utilization_${DAY}_${MONTH}_${HOUR}_${MINUTES}.png
 fi
+
+find /scratch/gpfs/jdh4/gpustat/history -name '*.png' -mtime +7 -exec rm -f {} \;
