@@ -89,8 +89,13 @@ def create_image():
             celltext = username + ":" + str(usage)
           ax[idx, j].text(0.5, 0.5, celltext, fontsize=10, color=txtclr, ha='center', \
                           va='center', transform=ax[idx, j].transAxes)
+          # node and gpu index labels
           if (j == 0):
-            lbl = node + '  ' + str(gpu_index) if (gpu_index == 0) else str(gpu_index)
+            lbl = str(gpu_index)
+            if gpu_index == 0):
+              lbl = node + '  ' + lbl
+            elif (gpu_index == 1 and node in cryoem):
+              lbl = '(cryoem)    ' + lbl
             ax[idx, j].set_ylabel(lbl, fontsize=12, rotation=0, ha='right', va='center')
           dt = datetime.fromtimestamp(t)
           # -I removes zero padding (linux only)
@@ -117,10 +122,14 @@ def remove_old_files():
         os.remove(gpufile)
 
 # generate the node names
-nodes = ['tiger-i' + str(i) + 'g' + str(j+1) for i in [19, 20, 21, 22, 23] for j in range(16)]
+nodes = ['tiger-i' + str(i) + 'g' + str(j+1) for i in range(19, 24) for j in range(16)]
 nodes.remove('tiger-i19g5')
 nodes.remove('tiger-i23g13')
-assert len(nodes) == 78, "Assert: Node count"
+cryoem = ['tiger-h' + str(i) + 'g' + str(j) for i in range(19, 27) for j in [1, 2]] + \
+         ['tiger-i26g1', 'tiger-i26g2']
+cryoem.remove('tiger-h22g1')
+nodes += cryoem
+assert len(nodes) == 95, "Assert: Node count"
 
 # total expected gpus (equal to number of rows)
 gpus_per_node = 4
