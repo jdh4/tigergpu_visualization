@@ -92,7 +92,7 @@ def create_image():
           # node and gpu index labels
           if (j == 0):
             lbl = str(gpu_index)
-            if gpu_index == 0):
+            if (gpu_index == 0):
               lbl = node + '  ' + lbl
             elif (gpu_index == 1 and node in cryoem):
               lbl = '(cryoem)    ' + lbl
@@ -128,8 +128,8 @@ nodes.remove('tiger-i23g13')
 cryoem = ['tiger-h' + str(i) + 'g' + str(j) for i in range(19, 27) for j in [1, 2]] + \
          ['tiger-i26g1', 'tiger-i26g2']
 cryoem.remove('tiger-h22g1')
-nodes += cryoem
-assert len(nodes) == 95, "Assert: Node count"
+#nodes += cryoem  # do not include cryoem node
+assert len(nodes) == 78, "Assert: Node count"
 
 # total expected gpus (equal to number of rows)
 gpus_per_node = 4
