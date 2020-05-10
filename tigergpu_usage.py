@@ -45,6 +45,39 @@ def process_all_files():
   for gpufile in gpufiles:
     process_gpustat_output(gpufile)
 
+def cell_color(username, usage):
+  # set cell color
+  if (username == '' or username == 'NO INFO'):
+     fcolor = '#CCCCCC'
+  elif (usage == 0):
+     fcolor = "#000000"
+  elif (usage < 25):
+     fcolor = "#FF0000"
+  elif (usage < 50):
+     fcolor = "#FF8C00"
+  else:
+     fcolor = "#FFFFFF"
+  return fcolor
+
+def celltext(username, usage):
+  # text for each cell
+  if (username == ''):
+    ctext = 'IDLE'
+  elif (username == 'NO INFO'):
+    ctext = username
+  else:
+    ctext = username + ":" + str(usage)
+  return ctext
+
+def gpu_labels(gpu_index, node):
+  # set labels for gpu ids and node names
+  lbl = str(gpu_index)
+  if (gpu_index == 0):
+    lbl = node + '  ' + lbl
+  elif (gpu_index == 1 and node in cryoem):
+    lbl = '(cryoem)    ' + lbl
+  return lbl
+
 def create_image():
   import matplotlib.pyplot as plt
   _, _, timestamps = zip(*usage_user.keys())
@@ -62,18 +95,7 @@ def create_image():
             usage, username = usage_user[mykey]
           else:
             usage, username = (-1, 'NO INFO')
-          # set cell color
-          if (username == '' or username == 'NO INFO'):
-             fcolor = '#CCCCCC'
-          elif (usage == 0):
-             fcolor = "#000000"
-          elif (usage < 25):
-             fcolor = "#FF0000"
-          elif (usage < 50):
-             fcolor = "#FF8C00"
-          else:
-             fcolor = "#FFFFFF"
-          ax[idx, j].set_facecolor(fcolor)
+          ax[idx, j].set_facecolor(cell_color(username, usage))
           # remove spines and ticks
           for side in ['top', 'right', 'bottom', 'left']:
             ax[idx, j].spines[side].set_visible(False)
@@ -81,22 +103,11 @@ def create_image():
           ax[idx, j].get_yaxis().set_ticks([])
           # set cell and labels text
           txtclr = 'w' if (usage < 25 or username == '') else 'k'
-          if (username == ''):
-            celltext = 'IDLE'
-          elif (username == 'NO INFO'):
-            celltext = username
-          else:
-            celltext = username + ":" + str(usage)
-          ax[idx, j].text(0.5, 0.5, celltext, fontsize=10, color=txtclr, ha='center', \
-                          va='center', transform=ax[idx, j].transAxes)
+          ax[idx, j].text(0.5, 0.5, celltext(username, usage), fontsize=10, color=txtclr, \
+                          ha='center', va='center', transform=ax[idx, j].transAxes)
           # node and gpu index labels
-          if (j == 0):
-            lbl = str(gpu_index)
-            if (gpu_index == 0):
-              lbl = node + '  ' + lbl
-            elif (gpu_index == 1 and node in cryoem):
-              lbl = '(cryoem)    ' + lbl
-            ax[idx, j].set_ylabel(lbl, fontsize=12, rotation=0, ha='right', va='center')
+          if (j == 0): ax[idx, j].set_ylabel(gpu_labels(gpu_index, node), fontsize=12, \
+                                             rotation=0, ha='right', va='center')
           dt = datetime.fromtimestamp(t)
           # -I removes zero padding (linux only)
           stamp = dt.strftime('%-I:%M')+' AM' if (dt.hour < 12) else dt.strftime('%-I:%M')+' PM'
