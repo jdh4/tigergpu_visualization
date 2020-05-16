@@ -116,10 +116,10 @@ def dept_code(dept, stat):
 
 def ldapbio(netids):
   # return a dataframe of info on each netid
-  not_found = 0
   columns = ['NAME', 'DEPT', 'STATUS', 'EDU', 'TITLE', 'ACAD', 'OFFICE', \
              'SPONSOR', 'USER2LDAP', 'NETID']
   people = [columns]
+  not_found = 0
   for netid in netids:
     output = subprocess.run("ldapsearch -x uid=" + netid, shell=True,
                             capture_output=True)
@@ -162,7 +162,7 @@ def ldapbio(netids):
 
       # get sponsor
       output = subprocess.run("getent passwd " + netid2, shell=True,
-			      capture_output=True)
+                              capture_output=True)
       line = output.stdout.decode("utf-8").split('\n')
       sponsor = line[0].split(':')[4].split(',')[-1] if line != [''] else 'NULL'
       sponsor = format_sponsor(sponsor)
@@ -172,4 +172,5 @@ def ldapbio(netids):
       addr = addr.replace('$', ', ')
 
       people.append([name, dept, stat, position, title, aca, office, sponsor, netid, netid2])
+  #if (not_found): print('Number of netids not found: %d' % not_found)
   return pd.DataFrame(people[1:], columns=people[0])
