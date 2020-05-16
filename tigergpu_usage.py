@@ -132,6 +132,18 @@ def remove_old_files():
       if (dt.seconds > 3600):
         os.remove(gpufile)
 
+def write_data():
+  _, _, timestamps = zip(*usage_user.keys())
+  tmax = max(timestamps)
+  f = open('utilization.csv', 'a')
+  for node in nodes:
+    for gpu_index in range(gpus_per_node):
+      mykey = (node, gpu_index, tmax)
+      if (mykey in usage_user):
+        usage, username = usage_user[mykey]
+        f.write('%d,%s,%d,%s,%d\n' % (int(tmax), node, gpu_index, username, usage))
+  f.close()
+
 # generate the node names
 nodes = ['tiger-i' + str(i) + 'g' + str(j+1) for i in range(19, 24) for j in range(16)]
 nodes.remove('tiger-i19g5')
@@ -164,4 +176,5 @@ for node in nodes:
 
 process_all_files()
 if usage_user: create_image()
+if usage_user: write_data()
 remove_old_files()
