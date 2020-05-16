@@ -1,0 +1,80 @@
+#!/usr/licensed/anaconda3/2020.2/bin/python
+
+import argparse
+import numpy as np
+import pandas as pd
+from time import time
+from datetime import datetime
+from dirt import ldapbio
+
+psr = argparse.ArgumentParser(description='Examine utilization of TigerGPU')
+psr.add_argument('-t', type=int, action='store', dest='hours',
+    default=24, help='create report over this many previous hours (default: 24)')
+psr.add_argument('-g', type=float, action='store', dest='gpu_hours_cutoff',
+    default=4, help='ignore users with less than this many gpu-hours (default: 4)')
+psr.add_argument('-c', type=float, action='store', dest='util_cutoff',
+    default=100, help='only show users with less than this utilization (%%) (default: 100)')
+psr.add_argument('-u', type=str, action='store', dest='netid',
+    default='-1', help='create report for a single user')
+args = psr.parse_args()
+
+hours = args.hours
+gpu_hours_cutoff = args.gpu_hours_cutoff
+util_cutoff = args.util_cutoff
+thisuser = args.netid
+
+# spacing in minutes between samples (set by how data is collected)
+sampling_freq = 10
+minutes_per_hour = 60.0
+
+###############################################################################
+df = pd.read_csv('utilization.csv', header=None)
+df.columns = ['timestamp', 'node', 'gpu', 'username', 'usage']
+
+# filter old records and idle nodes
+now = int(time())
+seconds_in_window = hours * 60 * 60
+df = df[(df.timestamp > now - seconds_in_window) & pd.notna(df.username)]
+
+range_begin = datetime.fromtimestamp(min(df.timestamp)).strftime('%-I:%M %p %-m/%-d/%Y')
+range_end   = datetime.fromtimestamp(max(df.timestamp)).strftime('%-I:%M %p %-m/%-d/%Y')
+overall_utilization = df.usage.mean()
+
+df = df.drop(['timestamp', 'node', 'gpu'], axis=1)
+if thisuser != '-1': df = df[df.username == thisuser]
+df = df.groupby(by='username').agg([np.size, np.mean, np.std]).reset_index()
+df.columns = ['username', 'gpu-hours', 'mean', 'std']
+df['gpu-hours'] = df['gpu-hours'] / (minutes_per_hour / sampling_freq)
+df['std'] = df['std'].apply(lambda x: x if pd.notna(x) else 0)
+df = df[(df['gpu-hours'] > gpu_hours_cutoff) & (df['mean'] < util_cutoff)]
+
+# get data from ldapsearch
+ldap = ldapbio(list(df.username))
+
+# join the two dataframes
+cmb = pd.merge(df, ldap, how='left', left_on=['username'], right_on=['NETID'])
+cmb = cmb.sort_values(by='mean')
+cmb['gpu-hours'] = cmb['gpu-hours'].apply(round).astype(str).apply(lambda x: x + '   ')
+cmb['mean'] = cmb['mean'].apply(round).astype(str).apply(lambda x: x + '  ')
+cmb['std'] = cmb['std'].apply(round).astype(str).apply(lambda x: x + '  ')
+cmb = cmb[['username', 'mean', 'std', 'gpu-hours', 'EDU', 'DEPT', 'SPONSOR']]
+cmb.columns = ['USERNAME', 'MEAN(%)', 'STD(%)', 'GPU-HOURS', 'POSITION', 'DEPT', 'SPONSOR']
+
+# print results
+df_str = cmb.to_string(index=False).split('\n')
+num_chars = len(df_str[0])
+
+def center(text, n):
+  spaces = ''.join([' '] * int(0.5 * (n - len(text))))
+  return spaces + text
+
+print('')
+print(center('TigerGPU Utilization', num_chars))
+print(center(range_begin + ' - ' + range_end, num_chars))
+print(center('Overall GPU utilization = %.1f%%\n' % overall_utilization, num_chars))
+if cmb.empty:
+  print('No results were found.')
+else:
+  print(df_str[0])
+  print(''.join(['='] * num_chars))
+  print('\n'.join(df_str[1:]))
