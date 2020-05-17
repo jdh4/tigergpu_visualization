@@ -29,7 +29,7 @@ depts = {'Advanced Projects, Princeton Plasma Physics Laboratory':'PPPL',
 'Molecular Biology':'MOLBIO',
 'Office of the Director, Princeton Plasma Physics Laboratory':'PPPL',
 'Operations Research and Financial Engineering':'ORFE',
-'Physics':'PHYS',
+'Physics':'PHYSICS',
 'Plasma Science and Technology, Princeton Plasma Physics Laboratory':'PPPL',
 'Politics':'POLITICS',
 'Princeton Center for Theoretical Science':'PCTS',
@@ -81,46 +81,43 @@ def format_sponsor(s):
 
 def infer_position(edu, aca, title, stat):
   # infer the job position of the user
-  edict = {'faculty':'Faculty', 'staff':'Staff', 'student':'Student', \
-           'affiliate':'Affiliate'}
-  if (edu in edict): edu = edict[edu]
-  grad = ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9']
-  if 'postdoc' in title.lower():
-    position = 'Postdoc'
-  elif aca in grad:
-    position = aca
-  elif stat == 'undergraduate':
-    position = 'Undergrad'
-  elif 'scholar' in title.lower():
-    position = 'Scholar'
-  elif 'lecturer' in title.lower():
-    position = 'Lecturer'
-  elif 'instructor' in title.lower():
-    position = 'Instructor'
+  if stat == 'undergraduate' or stat == 'xundergraduate':
+    return 'Undergrad'
+  elif aca in ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9']:
+    return aca
+  elif 'postdoc' in title.lower():
+    return 'Postdoc'
+  elif (edu == 'Faculty' or stat == 'fac' or 'Professor' in title):
+    return 'Faculty'
+  elif (stat == 'stf' and 'visiting' in title.lower()):
+    return 'Visitor'
+  elif (edu == 'Staff' or stat == 'stf' or stat == 'xstf'):
+    return 'Staff'
+  elif edu == 'affiliate':
+    if   stat == 'rcu': return 'RCU'
+    elif stat == 'dcu': return 'DCU'
+    elif stat == 'researchuser': return 'RU'
+    elif stat == 'exceptiondcu': return 'XDCU'
+    elif stat == 'sps': return 'SPS'
+    else: return ''
   else:
-    position = edu
-  return position
+    return ''
 
-def dept_code(dept, stat):
-  # replace the dept name with an abbreviation
+def dept_code(dept, stat, edu, office):
+  # replace the department name with an abbreviation
   if (dept in depts):
-    dept = depts[dept]
-  elif (dept == 'Unspecified Department'):
-    if   stat == 'rcu': dept = '(RCU)'
-    elif stat == 'dcu': dept = '(DCU)'
-    elif stat == 'researchuser': dept = '(RU)'
-    elif stat == 'exceptiondcu': dept = '(XDCU)'
-    elif stat == 'sps': dept = '(SPS)'
-    else: dept = ''
+    return depts[dept]
+  elif ((dept == 'Unspecified Department' or edu == 'affiliate') and office):
+    dept = office.split(',')[0].upper()
+    trans = {'CHEMISTRY':'CHEM', 'PSYCHOLOGY':'PSYCH','GENOMICS':'LSI'}
+    return dept if dept not in trans else trans[dept]
   else:
-    #print('\n\n*** MISSING DEPT: ', dept, '\n\n')
-    dept = ''
-  return dept
+    return ''
 
 def ldap_plus(netids):
   # return a dataframe with a row of info for each netid
-  columns = ['NAME', 'DEPT', 'STATUS', 'EDU', 'TITLE', 'ACAD', 'OFFICE', \
-             'SPONSOR', 'USER2LDAP', 'NETID']
+  columns = ['NAME', 'DEPT', 'STATUS', 'POSITION', 'TITLE', 'ACAD', 'OFFICE', \
+             'SPONSOR', 'NETID', 'NETID_TRUE']
   people = [columns]
   not_found = 0
   for netid in netids:
@@ -132,7 +129,7 @@ def ldap_plus(netids):
 
     mail_success = False
     if (not uid_success):
-      # netid not found so assume it was an email alias and search by mail
+      # netid not found so assume it was an alias and search by mail
       output = subprocess.run("ldapsearch -x mail=" + netid + "@princeton.edu",
                               shell=True, capture_output=True)
       lines = output.stdout.decode("utf-8").split('\n')
@@ -144,8 +141,8 @@ def ldap_plus(netids):
       people.append([None] * (len(columns) - 1) + [netid])
       not_found += 1
     else:
-      # netid2 is the true netid while netid may be an email alias
-      netid2 = record['uid']
+      # netid_true is the true netid while netid may be an alias
+      netid_true = record['uid']
       name = record['displayName']
       dept = record['ou']
       title = record['title']
@@ -156,27 +153,25 @@ def ldap_plus(netids):
       #street = record['street']
       #addr = record['puinterofficeaddress']
 
-      office = ''
-      if 0:
-        # get office (i.e, principal investigator or project)
-        output = subprocess.run("finger " + netid2, shell=True, \
-                                capture_output=True)
-        lines = output.stdout.decode("utf-8").split('\n')
-        finger = make_dict(lines)
-        office = finger['Office']
+      # get office (i.e, principal investigator or project)
+      output = subprocess.run("finger " + netid_true, shell=True, \
+                              capture_output=True)
+      lines = output.stdout.decode("utf-8").split('\n')
+      finger = make_dict(lines)
+      office = finger['Office']
 
       # get and format sponsor
-      output = subprocess.run("getent passwd " + netid2, shell=True,
+      output = subprocess.run("getent passwd " + netid_true, shell=True,
                               capture_output=True)
       line = output.stdout.decode("utf-8").split('\n')
       sponsor = line[0].split(':')[4].split(',')[-1] if line != [''] else 'NULL'
       sponsor = format_sponsor(sponsor)
 
       position = infer_position(edu, aca, title, stat)
-      dept = dept_code(dept, stat)
+      dept = dept_code(dept, stat, edu, office)
       #addr = addr.replace('$', ', ')
 
       people.append([name, dept, stat, position, title, aca, office, sponsor, \
-                     netid, netid2])
+                     netid, netid_true])
   #if (not_found): print('Number of netids not found: %d' % not_found)
   return pd.DataFrame(people[1:], columns=people[0])

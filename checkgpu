@@ -52,8 +52,8 @@ if df.empty:
   print('\nNo results found.\n')
   sys.exit(0)
 
-range_begin = datetime.fromtimestamp(min(df.timestamp)).strftime('%-I:%M %p %-m/%-d/%Y')
-range_end   = datetime.fromtimestamp(max(df.timestamp)).strftime('%-I:%M %p %-m/%-d/%Y')
+range_begin = datetime.fromtimestamp(min(df.timestamp)).strftime('%-I:%M %p %a (%-m/%-d)')
+range_end   = datetime.fromtimestamp(max(df.timestamp)).strftime('%-I:%M %p %a (%-m/%-d)')
 df = df.drop(['timestamp'], axis=1)
 
 # compute utilization mean and std for each username then filter
@@ -73,7 +73,7 @@ cmb = cmb.sort_values(by='mean')
 cmb['gpu-hours'] = cmb['gpu-hours'].apply(round).astype(str).apply(lambda x: x + '   ')
 cmb['mean'] = cmb['mean'].apply(round).astype(str).apply(lambda x: x + '  ')
 cmb['std'] = cmb['std'].apply(round).astype(str).apply(lambda x: x + '  ')
-cmb = cmb[['username', 'mean', 'std', 'gpu-hours', 'EDU', 'DEPT', 'SPONSOR']]
+cmb = cmb[['username', 'mean', 'std', 'gpu-hours', 'POSITION', 'DEPT', 'SPONSOR']]
 cmb.columns = ['USERNAME', 'MEAN(%)', 'STD(%)', 'GPU-HOURS', 'POSITION', 'DEPT', 'SPONSOR']
 
 # print results
