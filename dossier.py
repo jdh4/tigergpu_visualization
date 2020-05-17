@@ -12,7 +12,7 @@ depts = {'Advanced Projects, Princeton Plasma Physics Laboratory':'PPPL',
 'Chemical and Biological Engineering':'CBE',
 'Chemistry':'CHEM',
 'Civil and Environmental Engineering':'CEE',
-'Computer Science':'COS',
+'Computer Science':'CS',
 'Ecology and Evolutionary Biology':'EEB',
 'Economics':'ECON',
 'Electrical Engineering':'EE',
@@ -63,22 +63,24 @@ def make_dict(text):
   return record
 
 def format_sponsor(s):
+  # extract last name from sponsor
   names = list(filter(lambda x: x not in ['Jr.', 'II', 'III', 'IV'], s.split()))
   if len(names) == 2:
     if len(names[1]) > 1: return names[1]
     else: return s
   elif (len(names) > 2):
     idx = 0
-    while names[idx].endswith('.'):
-      idx += 1    
+    while (names[idx].endswith('.') and (idx < len(names) - 1)):
+      idx += 1
     names = names[idx:]
     e = ''.join([str(int(name.endswith('.'))) for name in names])
     if '1' in e: return ' '.join(names[e.index('1') + 1:])
     else: return names[-1]
   else:
-    return names[-1]
+    return s
 
 def infer_position(edu, aca, title, stat):
+  # infer the job position of the user
   edict = {'faculty':'Faculty', 'staff':'Staff', 'student':'Student', \
            'affiliate':'Affiliate'}
   if (edu in edict): edu = edict[edu]
@@ -100,6 +102,7 @@ def infer_position(edu, aca, title, stat):
   return position
 
 def dept_code(dept, stat):
+  # replace the dept name with an abbreviation
   if (dept in depts):
     dept = depts[dept]
   elif (dept == 'Unspecified Department'):
@@ -114,8 +117,8 @@ def dept_code(dept, stat):
     dept = ''
   return dept
 
-def ldapbio(netids):
-  # return a dataframe of info on each netid
+def ldap_plus(netids):
+  # return a dataframe with a row of info for each netid
   columns = ['NAME', 'DEPT', 'STATUS', 'EDU', 'TITLE', 'ACAD', 'OFFICE', \
              'SPONSOR', 'USER2LDAP', 'NETID']
   people = [columns]
@@ -160,7 +163,7 @@ def ldapbio(netids):
       finger = make_dict(lines)
       office = finger['Office']
 
-      # get sponsor
+      # get and format sponsor
       output = subprocess.run("getent passwd " + netid2, shell=True,
                               capture_output=True)
       line = output.stdout.decode("utf-8").split('\n')
