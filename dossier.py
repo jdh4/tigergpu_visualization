@@ -153,15 +153,17 @@ def ldap_plus(netids):
       aca = record['puacademiclevel']
       phone = record['telephoneNumber']
       edu = record['eduPersonPrimaryAffiliation']
-      street = record['street']
-      addr = record['puinterofficeaddress']
+      #street = record['street']
+      #addr = record['puinterofficeaddress']
 
-      # get office (i.e, principal investigator or project)
-      output = subprocess.run("finger " + netid2, shell=True,
-                              capture_output=True)
-      lines = output.stdout.decode("utf-8").split('\n')
-      finger = make_dict(lines)
-      office = finger['Office']
+      office = ''
+      if 0:
+        # get office (i.e, principal investigator or project)
+        output = subprocess.run("finger " + netid2, shell=True, \
+                                capture_output=True)
+        lines = output.stdout.decode("utf-8").split('\n')
+        finger = make_dict(lines)
+        office = finger['Office']
 
       # get and format sponsor
       output = subprocess.run("getent passwd " + netid2, shell=True,
@@ -172,8 +174,9 @@ def ldap_plus(netids):
 
       position = infer_position(edu, aca, title, stat)
       dept = dept_code(dept, stat)
-      addr = addr.replace('$', ', ')
+      #addr = addr.replace('$', ', ')
 
-      people.append([name, dept, stat, position, title, aca, office, sponsor, netid, netid2])
+      people.append([name, dept, stat, position, title, aca, office, sponsor, \
+                     netid, netid2])
   #if (not_found): print('Number of netids not found: %d' % not_found)
   return pd.DataFrame(people[1:], columns=people[0])
