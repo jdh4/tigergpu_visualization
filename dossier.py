@@ -53,6 +53,7 @@ depts = {'Advanced Projects, Princeton Plasma Physics Laboratory':'PPPL',
 'Woodrow Wilson School':'WWS'}
 
 def make_dict(text):
+  # make dictionary out of strings separated by colons
   record = defaultdict(str)
   for line in text:
     if (':' in line):
@@ -114,8 +115,24 @@ def dept_code(dept, stat, edu, office):
   else:
     return ''
 
+def get_office_from_finger(netid_true):
+  # get office (i.e, principal investigator or project)
+  output = subprocess.run("finger " + netid_true, shell=True, \
+			  capture_output=True)
+  lines = output.stdout.decode("utf-8").split('\n')
+  finger = make_dict(lines)
+  return finger['Office']
+
+def get_sponsor_from_getent(netid_true):
+  # get sponsor of the user
+  output = subprocess.run("getent passwd " + netid_true, shell=True,
+                          capture_output=True)
+  line = output.stdout.decode("utf-8").split('\n')
+  sponsor = line[0].split(':')[4].split(',')[-1] if line != [''] else 'NULL'
+  return sponsor
+
 def ldap_plus(netids):
-  # return a dataframe with a row of info for each netid
+  # return a pandas dataframe with a row of info for each netid
   columns = ['NAME', 'DEPT', 'STATUS', 'POSITION', 'TITLE', 'ACAD', 'OFFICE', \
              'SPONSOR', 'NETID', 'NETID_TRUE']
   people = [columns]
@@ -153,20 +170,8 @@ def ldap_plus(netids):
       #street = record['street']
       #addr = record['puinterofficeaddress']
 
-      # get office (i.e, principal investigator or project)
-      output = subprocess.run("finger " + netid_true, shell=True, \
-                              capture_output=True)
-      lines = output.stdout.decode("utf-8").split('\n')
-      finger = make_dict(lines)
-      office = finger['Office']
-
-      # get and format sponsor
-      output = subprocess.run("getent passwd " + netid_true, shell=True,
-                              capture_output=True)
-      line = output.stdout.decode("utf-8").split('\n')
-      sponsor = line[0].split(':')[4].split(',')[-1] if line != [''] else 'NULL'
-      sponsor = format_sponsor(sponsor)
-
+      office = get_office_from_finger(netid_true)
+      sponsor = format_sponsor(get_sponsor_from_getent(netid_true))
       position = infer_position(edu, aca, title, stat)
       dept = dept_code(dept, stat, edu, office)
       #addr = addr.replace('$', ', ')
