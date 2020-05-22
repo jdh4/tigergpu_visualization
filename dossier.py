@@ -1,4 +1,3 @@
-import pandas as pd
 import subprocess
 from collections import defaultdict
 
@@ -80,9 +79,10 @@ def format_sponsor(s):
   else:
     return s
 
-def infer_position(edu, aca, title, stat):
+def infer_position(edu, aca, title, stat, dept):
   # infer the job position of the user
   if stat == 'undergraduate' or stat == 'xundergraduate':
+    if dept.startswith('Undergraduate Class of '): return 'Under' + dept[-4:]
     return 'Undergrad'
   elif aca in ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9']:
     return aca
@@ -104,14 +104,15 @@ def infer_position(edu, aca, title, stat):
   else:
     return ''
 
-def dept_code(dept, stat, edu, office):
+def get_dept_code(dept, stat, edu, office):
   # replace the department name with an abbreviation
-  if (dept in depts):
+  trans = {'CHEMISTRY':'CHEM', 'PSYCHOLOGY':'PSYCH','GENOMICS':'LSI'}
+  if ((dept.startswith('Undergraduate Class of ') or dept == 'Unspecified Department' \
+      or edu == 'affiliate') and office):
+    odept = office.split(',')[0].upper()
+    return odept if odept not in trans else trans[odept]
+  elif (dept in depts):
     return depts[dept]
-  elif ((dept == 'Unspecified Department' or edu == 'affiliate') and office):
-    dept = office.split(',')[0].upper()
-    trans = {'CHEMISTRY':'CHEM', 'PSYCHOLOGY':'PSYCH','GENOMICS':'LSI'}
-    return dept if dept not in trans else trans[dept]
   else:
     return ''
 
@@ -132,7 +133,7 @@ def get_sponsor_from_getent(netid_true):
   return sponsor
 
 def ldap_plus(netids):
-  # return a pandas dataframe with a row of info for each netid
+  # return a list of lists
   columns = ['NAME', 'DEPT', 'STATUS', 'POSITION', 'TITLE', 'ACAD', 'OFFICE', \
              'SPONSOR', 'NETID', 'NETID_TRUE']
   people = [columns]
@@ -172,11 +173,11 @@ def ldap_plus(netids):
 
       office = get_office_from_finger(netid_true)
       sponsor = format_sponsor(get_sponsor_from_getent(netid_true))
-      position = infer_position(edu, aca, title, stat)
-      dept = dept_code(dept, stat, edu, office)
+      position = infer_position(edu, aca, title, stat, dept)
+      dept_code = get_dept_code(dept, stat, edu, office)
       #addr = addr.replace('$', ', ')
 
-      people.append([name, dept, stat, position, title, aca, office, sponsor, \
+      people.append([name, dept_code, stat, position, title, aca, office, sponsor, \
                      netid, netid_true])
   #if (not_found): print('Number of netids not found: %d' % not_found)
-  return pd.DataFrame(people[1:], columns=people[0])
+  return people

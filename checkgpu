@@ -22,7 +22,7 @@ psr.add_argument('-c', type=float, action='store', dest='util_cutoff',
 psr.add_argument('-u', type=str, action='store', dest='netid',
     default='-1', help='create report for a single user')
 psr.add_argument('-v', action='store_true', help='flag to include position, \
-    department and sponsor columns (will run slower)')
+    department and sponsor (will run slower)')
 args = psr.parse_args()
 
 # spacing in minutes between samples (set by how data is collected)
@@ -73,6 +73,7 @@ df = df[(df['gpu-hours'] > gpu_hours_cutoff) & (df['mean'] < util_cutoff)]
 if args.v:
   # get data from ldapsearch, finger and getent
   ldap = ldap_plus(list(df.username))
+  ldap = pd.DataFrame(data=ldap[1:], columns=ldap[0])
   # join the two dataframes
   df = pd.merge(df, ldap, how='left', left_on=['username'], right_on=['NETID'])
 df = df.sort_values(by='mean')
@@ -85,6 +86,21 @@ if args.v:
 else:
   df = df[['username', 'mean', 'std', 'gpu-hours']]
   df.columns = ['USERNAME', 'MEAN(%)', 'STD(%)', 'GPU-HOURS']
+
+if 0:
+  df['GPU-HOURS'] = df['GPU-HOURS'].astype(int)
+  df = df[['DEPT', 'GPU-HOURS']].groupby(by='DEPT').agg(np.sum).reset_index()
+  df['PROPORTION(%)'] = 100 * df['GPU-HOURS'] / df['GPU-HOURS'].sum()
+  df['PROPORTION(%)'] = df['PROPORTION(%)'].apply(lambda x: str(round(x)) + '  ')
+  df.columns = ['DEPT', 'GPU-HOURS', 'PROPORTION(%)']
+  df = df.sort_values(by='GPU-HOURS', ascending=False)
+if 0:
+  df['GPU-HOURS'] = df['GPU-HOURS'].astype(int)
+  df = df[['SPONSOR', 'GPU-HOURS']].groupby(by='SPONSOR').agg(np.sum).reset_index()
+  df['PROPORTION(%)'] = 100 * df['GPU-HOURS'] / df['GPU-HOURS'].sum()
+  df['PROPORTION(%)'] = df['PROPORTION(%)'].apply(lambda x: str(round(x)) + '  ')
+  df.columns = ['SPONSOR', 'GPU-HOURS', 'PROPORTION(%)']
+  df = df.sort_values(by='GPU-HOURS', ascending=False)
 
 # print results
 df_str = df.to_string(index=False).split('\n')
