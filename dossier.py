@@ -139,25 +139,39 @@ def ldap_plus(netids):
   people = [columns]
   not_found = 0
   for netid in netids:
-    output = subprocess.run("ldapsearch -x uid=" + netid, shell=True,
-                            capture_output=True)
-    lines = output.stdout.decode("utf-8").split('\n')
-    record = make_dict(lines)
-    uid_success = (record['numResponses'] == str(2))
+    uid_except = False
+    try:
+      output = subprocess.run("ldapsearch -x uid=" + netid, capture_output=True, \
+                              shell=True, timeout=2)
+    except:
+      uid_except = True
+    else:
+      lines = output.stdout.decode("utf-8").split('\n')
+      record = make_dict(lines)
+      uid_success = (record['numResponses'] == str(2))
 
+    mail_except = False
     mail_success = False
     if (not uid_success):
       # netid not found so assume it was an alias and search by mail
-      output = subprocess.run("ldapsearch -x mail=" + netid + "@princeton.edu",
-                              shell=True, capture_output=True)
-      lines = output.stdout.decode("utf-8").split('\n')
-      record = make_dict(lines)
-      mail_success = (record['numResponses'] == str(2))
+      # this good idea comes from R. Knight
+      try:
+        output = subprocess.run("ldapsearch -x mail=" + netid + "@princeton.edu",
+                                capture_output=True, shell=True, timeout=2)
+      except:
+        mail_except = True
+      else:
+        lines = output.stdout.decode("utf-8").split('\n')
+        record = make_dict(lines)
+        mail_success = (record['numResponses'] == str(2))
 
     if ((not uid_success) and (not mail_success)):
       # both attempts failed
-      people.append([None] * (len(columns) - 1) + [netid])
+      people.append([None] * (len(columns) - 2) + [netid, None])
       not_found += 1
+    elif (uid_except and mail_except):
+      # both commands failed
+      people.append([None] * (len(columns) - 2) + [netid, None])
     else:
       # netid_true is the true netid while netid may be an alias
       netid_true = record['uid']

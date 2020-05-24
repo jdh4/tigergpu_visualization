@@ -20,11 +20,9 @@ psr = argparse.ArgumentParser(add_help=False,
   Show utilization for all users over the last week and their university info:
        $ checkgpu -t 168 -v
 
-  GPU usage by department over the last 24 hours:
+  GPU usage by department over the last 24 hours (which is default time window):
        $ checkgpu -d
 '''))
-psr.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
-                help='Show this help message and exit.')
 psr.add_argument('-t', type=float, action='store', dest='hours',
     default=24, help='Create report over this many previous hours from now \
     (default: 24)')
@@ -42,6 +40,8 @@ psr.add_argument('-d', action='store_true', help='Flag to show usage grouped \
     by department (only -t allowed, e.g., checkgpu -t 48 -d)')
 psr.add_argument('-s', action='store_true', help='Flag to show usage grouped \
     by sponsor (only -t allowed, e.g., checkgpu -t 48 -s)')
+psr.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
+                help='Show this help message and exit.')
 args = psr.parse_args()
 
 # spacing in minutes between samples (set by how data is collected)
@@ -140,7 +140,8 @@ if (not args.d and not args.s):
 if df.empty:
   print('No results were found.')
 else:
-  print('\n', df_str[0])
+  print('')
+  print(df_str[0])
   print(''.join(['='] * num_chars))
   print('\n'.join(df_str[1:]))
   print(''.join(['='] * num_chars))
