@@ -3,26 +3,45 @@ import sys
 sys.path = list(filter(lambda p: p.startswith("/usr"), sys.path))
 sys.path.append('/scratch/gpfs/jdh4/gpustat')
 import argparse
+import textwrap
 import numpy as np
 import pandas as pd
 from time import time
 from datetime import datetime
 from dossier import ldap_plus
 
-psr = argparse.ArgumentParser(description='Examine utilization of TigerGPU')
+psr = argparse.ArgumentParser(add_help=False,
+  description='Examine GPU utilization and usage of TigerGPU',
+  formatter_class=argparse.RawDescriptionHelpFormatter,
+  epilog=textwrap.dedent('''
+  Show users with a GPU utilization of less than 25% over the last two days:
+       $ checkgpu -c 25 -t 48
+
+  Show utilization for all users over the last week and their university info:
+       $ checkgpu -t 168 -v
+
+  GPU usage by department over the last 24 hours:
+       $ checkgpu -d
+'''))
+psr.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
+                help='Show this help message and exit.')
 psr.add_argument('-t', type=float, action='store', dest='hours',
-    default=24, help='create report over this many previous hours from now \
+    default=24, help='Create report over this many previous hours from now \
     (default: 24)')
-psr.add_argument('-g', type=float, action='store', dest='gpu_hours_cutoff',
-    default=0, help='ignore users with less than this many gpu-hours in the \
-    specified window (default: 0)')
 psr.add_argument('-c', type=float, action='store', dest='util_cutoff',
-    default=100, help='only show users with less than this utilization (%%) \
+    default=100, help='Only show users with less than this utilization(%%) \
     (default: 100)')
+psr.add_argument('-g', type=float, action='store', dest='gpu_hours_cutoff',
+    default=0, help='Ignore users with less than this many gpu-hours in the \
+    specified window (default: 0)')
 psr.add_argument('-u', type=str, action='store', dest='netid',
-    default='-1', help='create report for a single user')
-psr.add_argument('-v', action='store_true', help='flag to include position, \
+    default='-1', help='Create report for a single user')
+psr.add_argument('-v', action='store_true', help='Flag to include position, \
     department and sponsor (will run slower)')
+psr.add_argument('-d', action='store_true', help='Flag to show usage grouped \
+    by department (only -t allowed, e.g., checkgpu -t 48 -d)')
+psr.add_argument('-s', action='store_true', help='Flag to show usage grouped \
+    by sponsor (only -t allowed, e.g., checkgpu -t 48 -s)')
 args = psr.parse_args()
 
 # spacing in minutes between samples (set by how data is collected)
@@ -37,6 +56,12 @@ if (hours < ratio):
 gpu_hours_cutoff = args.gpu_hours_cutoff
 util_cutoff = args.util_cutoff
 thisuser = args.netid
+
+if args.d or args.s:
+  thisuser = '-1'
+  gpu_hours_cutoff = 0
+  util_cutoff = 100
+  args.v = True
 
 ###############################################################################
 datafile = '/scratch/gpfs/jdh4/gpustat/utilization.csv'
@@ -87,19 +112,13 @@ else:
   df = df[['username', 'mean', 'std', 'gpu-hours']]
   df.columns = ['USERNAME', 'MEAN(%)', 'STD(%)', 'GPU-HOURS']
 
-if 0:
+if args.d or args.s:
+  field = 'DEPT' if args.d else 'SPONSOR'
   df['GPU-HOURS'] = df['GPU-HOURS'].astype(int)
-  df = df[['DEPT', 'GPU-HOURS']].groupby(by='DEPT').agg(np.sum).reset_index()
+  df = df[[field, 'GPU-HOURS']].groupby(by=field).agg(np.sum).reset_index()
   df['PROPORTION(%)'] = 100 * df['GPU-HOURS'] / df['GPU-HOURS'].sum()
   df['PROPORTION(%)'] = df['PROPORTION(%)'].apply(lambda x: str(round(x)) + '  ')
-  df.columns = ['DEPT', 'GPU-HOURS', 'PROPORTION(%)']
-  df = df.sort_values(by='GPU-HOURS', ascending=False)
-if 0:
-  df['GPU-HOURS'] = df['GPU-HOURS'].astype(int)
-  df = df[['SPONSOR', 'GPU-HOURS']].groupby(by='SPONSOR').agg(np.sum).reset_index()
-  df['PROPORTION(%)'] = 100 * df['GPU-HOURS'] / df['GPU-HOURS'].sum()
-  df['PROPORTION(%)'] = df['PROPORTION(%)'].apply(lambda x: str(round(x)) + '  ')
-  df.columns = ['SPONSOR', 'GPU-HOURS', 'PROPORTION(%)']
+  df.columns = [field, 'GPU-HOURS', 'PROPORTION(%)']
   df = df.sort_values(by='GPU-HOURS', ascending=False)
 
 # print results
@@ -111,13 +130,17 @@ def center(text, n):
   return spaces + text
 
 print('')
-print(center('TigerGPU Utilization', num_chars))
+if (args.d or args.s):
+  print(center('TigerGPU Usage', num_chars))
+else:
+  print(center('TigerGPU Utilization', num_chars))
 print(center(range_begin + ' - ' + range_end, num_chars))
-print(center('Overall GPU utilization = %.1f%%\n' % overall_utilization, num_chars))
+if (not args.d and not args.s):
+  print(center('Overall GPU utilization = %.1f%%' % overall_utilization, num_chars))
 if df.empty:
   print('No results were found.')
 else:
-  print(df_str[0])
+  print('\n', df_str[0])
   print(''.join(['='] * num_chars))
   print('\n'.join(df_str[1:]))
   print(''.join(['='] * num_chars))
