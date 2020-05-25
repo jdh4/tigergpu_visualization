@@ -8,7 +8,6 @@ import numpy as np
 import pandas as pd
 from time import time
 from datetime import datetime
-from dossier import ldap_plus
 
 psr = argparse.ArgumentParser(add_help=False,
   description='Examine GPU utilization and usage of TigerGPU',
@@ -17,8 +16,8 @@ psr = argparse.ArgumentParser(add_help=False,
   Show users with a GPU utilization of less than 25% over the last two days:
        $ checkgpu -c 25 -t 48
 
-  Show utilization for all users over the last week and their university info:
-       $ checkgpu -t 168 -v
+  Show utilization for all users over the last week:
+       $ checkgpu -t 168
 
   GPU usage by department over the last 24 hours (which is default time window):
        $ checkgpu -d
@@ -34,8 +33,6 @@ psr.add_argument('-g', type=float, action='store', dest='gpu_hours_cutoff',
     specified window (default: 0)')
 psr.add_argument('-u', type=str, action='store', dest='netid',
     default='-1', help='Create report for a single user')
-psr.add_argument('-v', action='store_true', help='Flag to include position, \
-    department and sponsor (will run slower)')
 psr.add_argument('-d', action='store_true', help='Flag to show usage grouped \
     by department (only -t allowed, e.g., checkgpu -t 48 -d)')
 psr.add_argument('-s', action='store_true', help='Flag to show usage grouped \
@@ -61,7 +58,6 @@ if args.d or args.s:
   thisuser = '-1'
   gpu_hours_cutoff = 0
   util_cutoff = 100
-  args.v = True
 
 ###############################################################################
 datafile = '/scratch/gpfs/jdh4/gpustat/utilization.csv'
@@ -95,23 +91,17 @@ df['gpu-hours'] = df['gpu-hours'] / (minutes_per_hour / sampling_freq)
 df['std'] = df['std'].apply(lambda x: x if pd.notna(x) else 0)
 df = df[(df['gpu-hours'] > gpu_hours_cutoff) & (df['mean'] < util_cutoff)]
 
-if args.v:
-  # get data from ldapsearch, finger and getent
-  #ldap = ldap_plus(list(df.username))
-  #ldap = pd.DataFrame(data=ldap[1:], columns=ldap[0])
-  ldap = pd.read_csv('cached_users.csv', header=0)
-  # join the two dataframes
-  df = pd.merge(df, ldap, how='left', left_on=['username'], right_on=['NETID'])
+# read cached user data
+userfile = '/scratch/gpfs/jdh4/gpustat/cached_users.csv'
+ldap = pd.read_csv(userfile, header=0) if Path(datafile) else pd.DataFrame()
+# join the two dataframes
+df = pd.merge(df, ldap, how='left', left_on=['username'], right_on=['NETID'])
 df = df.sort_values(by='mean')
 df['gpu-hours'] = df['gpu-hours'].apply(round).astype(str).apply(lambda x: x + '   ')
 df['mean'] = df['mean'].apply(round).astype(str).apply(lambda x: x + '  ')
 df['std'] = df['std'].apply(round).astype(str).apply(lambda x: x + '  ')
-if args.v:
-  df = df[['username', 'mean', 'std', 'gpu-hours', 'POSITION', 'DEPT', 'SPONSOR']]
-  df.columns = ['USERNAME', 'MEAN(%)', 'STD(%)', 'GPU-HOURS', 'POSITION', 'DEPT', 'SPONSOR']
-else:
-  df = df[['username', 'mean', 'std', 'gpu-hours']]
-  df.columns = ['USERNAME', 'MEAN(%)', 'STD(%)', 'GPU-HOURS']
+df = df[['username', 'mean', 'std', 'gpu-hours', 'POSITION', 'DEPT', 'SPONSOR']]
+df.columns = ['USERNAME', 'MEAN(%)', 'STD(%)', 'GPU-HOURS', 'POSITION', 'DEPT', 'SPONSOR']
 
 if args.d or args.s:
   field = 'DEPT' if args.d else 'SPONSOR'
