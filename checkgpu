@@ -97,8 +97,9 @@ df = df[(df['gpu-hours'] > gpu_hours_cutoff) & (df['mean'] < util_cutoff)]
 
 if args.v:
   # get data from ldapsearch, finger and getent
-  ldap = ldap_plus(list(df.username))
-  ldap = pd.DataFrame(data=ldap[1:], columns=ldap[0])
+  #ldap = ldap_plus(list(df.username))
+  #ldap = pd.DataFrame(data=ldap[1:], columns=ldap[0])
+  ldap = pd.read_csv('cached_users.csv', header=0)
   # join the two dataframes
   df = pd.merge(df, ldap, how='left', left_on=['username'], right_on=['NETID'])
 df = df.sort_values(by='mean')
