@@ -97,7 +97,7 @@ ldap = pd.read_csv(userfile, header=0) if Path(datafile) else pd.DataFrame()
 # join the two dataframes
 df = pd.merge(df, ldap, how='left', left_on=['username'], right_on=['NETID'])
 df = df.sort_values(by='mean')
-df['gpu-hours'] = df['gpu-hours'].apply(round).astype(str).apply(lambda x: x + '   ')
+df['gpu-hours'] = df['gpu-hours'].apply(round).astype(str).apply(lambda x: x + '  ')
 df['mean'] = df['mean'].apply(round).astype(str).apply(lambda x: x + '  ')
 df['std'] = df['std'].apply(round).astype(str).apply(lambda x: x + '  ')
 df = df[['username', 'mean', 'std', 'gpu-hours', 'POSITION', 'DEPT', 'SPONSOR']]
@@ -113,7 +113,7 @@ if args.d or args.s:
   df = df.sort_values(by='GPU-HOURS', ascending=False)
 
 # print results
-df_str = df.to_string(index=False).split('\n')
+df_str = df.fillna('').to_string(index=False).split('\n')
 num_chars = len(df_str[0])
 
 def center(text, n):

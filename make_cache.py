@@ -12,7 +12,7 @@ netids = output.stdout.decode("utf-8").split('\n')
 netids.remove('')
 netids.remove('+')
 
-univ_info = ldap_plus(netids[:50])
+univ_info = ldap_plus(netids)
 df = pd.DataFrame(univ_info[1:], columns=univ_info[0])
 cols = ['NETID', 'POSITION', 'DEPT', 'SPONSOR']
 df = df[cols]
