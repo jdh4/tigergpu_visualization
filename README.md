@@ -1,3 +1,3 @@
 # TigerGPU Visualization
 
-This script creates a figure to monitor GPU usage on TigerGPU.
+This script creates a figure to monitor GPU utlization and usage on TigerGPU.
