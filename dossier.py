@@ -82,19 +82,19 @@ def format_sponsor(s):
 def infer_position(edu, aca, title, stat, dept):
   # infer the job position of the user
   if stat == 'undergraduate' or stat == 'xundergraduate':
-    if dept.startswith('Undergraduate Class of '): return 'Under' + dept[-4:]
+    if dept.startswith('Undergraduate Class of '): return 'Udrg' + dept[-4:]
     return 'Undergrad'
   elif aca in ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9']:
     return aca
   elif 'postdoc' in title.lower():
     return 'Postdoc'
-  elif (edu == 'Faculty' or stat == 'fac' or 'Professor' in title):
+  elif (edu.lower() == 'faculty' or stat == 'fac' or 'professor' in title.lower()):
     return 'Faculty'
   elif (stat == 'stf' and 'visiting' in title.lower()):
     return 'Visitor'
-  elif (edu == 'Staff' or stat == 'stf' or stat == 'xstf'):
+  elif (edu.lower() == 'staff' or stat == 'stf' or stat == 'xstf'):
     return 'Staff'
-  elif edu == 'affiliate':
+  elif edu.lower() == 'affiliate':
     if   stat == 'rcu': return 'RCU'
     elif stat == 'dcu': return 'DCU'
     elif stat == 'researchuser': return 'RU'
@@ -145,6 +145,7 @@ def ldap_plus(netids):
                               shell=True, timeout=2)
     except:
       uid_except = True
+      uid_success = False
     else:
       lines = output.stdout.decode("utf-8").split('\n')
       record = make_dict(lines)
@@ -160,6 +161,7 @@ def ldap_plus(netids):
                                 capture_output=True, shell=True, timeout=2)
       except:
         mail_except = True
+        mail_success = False
       else:
         lines = output.stdout.decode("utf-8").split('\n')
         record = make_dict(lines)
