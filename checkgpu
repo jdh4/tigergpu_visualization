@@ -62,7 +62,7 @@ if args.d or args.s:
 datafile = '/scratch/gpfs/jdh4/gpustat/utilization.csv'
 from pathlib import Path
 if not Path(datafile):
-  print('Data file not found: %s' % datafile)
+  print('Data file not found: %s. Are you on the tiger cluster?' % datafile)
   sys.exit(1)
 df = pd.read_csv(datafile, header=None, usecols=[0, 3, 4])
 df.columns = ['timestamp', 'username', 'usage']

@@ -110,12 +110,12 @@ def create_image():
                                              rotation=0, ha='right', va='center')
           dt = datetime.fromtimestamp(t)
           # -I removes zero padding (linux only)
-          stamp = dt.strftime('%-I:%M')+' AM' if (dt.hour < 12) else dt.strftime('%-I:%M')+' PM'
+          stamp = dt.strftime('%-I:%M %p')
           if (idx == 0):
             ax[idx, j].xaxis.set_label_position('top')
             ax[idx, j].set_xlabel(stamp, fontsize=12, rotation=0, ha='center', va='bottom')
   # -d and -I remove zero padding (linux only)
-  fig.suptitle('TigerGPU Utilization (' + str(dt.strftime("%-d %b %Y")) + ')', \
+  fig.suptitle('TigerGPU Utilization (' + str(dt.strftime("%a %b %-d")) + ')', \
                y=0.997, ha='center', fontsize=18)
   fig.tight_layout(pad=0, w_pad=0, h_pad=0, rect=(0, 0, 1, 0.99))
   plt.savefig('tigergpu_utilization.png')
