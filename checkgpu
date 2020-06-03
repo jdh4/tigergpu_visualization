@@ -23,7 +23,7 @@ psr = argparse.ArgumentParser(add_help=False,
 '''))
 psr.add_argument('-t', type=float, action='store', dest='hours',
     default=24, help='Create report over this many previous hours from now \
-    (default: 24)')
+    (default: 24) [1 week = 168 hours, 2 weeks = 336 hours]')
 psr.add_argument('-c', type=float, action='store', dest='util_cutoff',
     default=100, help='Only show users with less than this utilization(%%) \
     (default: 100)')
@@ -32,6 +32,8 @@ psr.add_argument('-g', type=float, action='store', dest='gpu_hours_cutoff',
     specified window (default: 0)')
 psr.add_argument('-u', type=str, action='store', dest='netid',
     default='-1', help='Create report for a single user')
+psr.add_argument('-r', action='store_true', help='Flag to sort by GPU-hours \
+    instead of mean utilization (does not work with -d or -s)')
 psr.add_argument('-d', action='store_true', help='Flag to show usage grouped \
     by department (only -t allowed, e.g., checkgpu -t 48 -d)')
 psr.add_argument('-s', action='store_true', help='Flag to show usage grouped \
@@ -95,7 +97,9 @@ userfile = '/scratch/gpfs/jdh4/gpustat/cached_users.csv'
 ldap = pd.read_csv(userfile, header=0) if Path(datafile) else pd.DataFrame()
 # join the two dataframes
 df = pd.merge(df, ldap, how='left', left_on=['username'], right_on=['NETID'])
-df = df.sort_values(by='mean')
+# performing sorting
+sortby, isascend = ('gpu-hours', False) if args.r else ('mean', True)
+df = df.sort_values(by=sortby, ascending=isascend)
 df['gpu-hours'] = df['gpu-hours'].apply(round).astype(str).apply(lambda x: x + '  ')
 df['mean'] = df['mean'].apply(round).astype(str).apply(lambda x: x + '  ')
 df['std'] = df['std'].apply(round).astype(str).apply(lambda x: x + '  ')
