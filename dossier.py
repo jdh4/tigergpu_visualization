@@ -84,6 +84,8 @@ def infer_position(edu, aca, title, stat, dept):
   if stat == 'undergraduate' or stat == 'xundergraduate':
     if dept.startswith('Undergraduate Class of '): return 'Udrg' + dept[-4:]
     return 'Undergrad'
+  elif edu == 'alum' and dept.startswith('Undergraduate Class of '):
+    return 'Udrg' + dept[-4:]
   elif aca in ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9']:
     return aca
   elif 'postdoc' in title.lower():
