@@ -55,6 +55,8 @@ def cell_color(username, usage):
      fcolor = "#FF0000"
   elif (usage < 50):
      fcolor = "#FF8C00"
+  elif (usage < 75):
+     fcolor = "#F9E79F"
   else:
      fcolor = "#FFFFFF"
   return fcolor

@@ -46,6 +46,7 @@ args = psr.parse_args()
 sampling_freq = 10
 minutes_per_hour = 60.0
 ratio = sampling_freq / minutes_per_hour
+total_gpus = 312
 
 hours = args.hours
 if (hours < ratio):
@@ -89,6 +90,7 @@ overall_utilization = df.usage.mean()
 df = df.groupby(by='username').agg([np.size, np.mean, np.std]).reset_index()
 df.columns = ['username', 'gpu-hours', 'mean', 'std']
 df['gpu-hours'] = df['gpu-hours'] / (minutes_per_hour / sampling_freq)
+overall_hours = df['gpu-hours'].sum()
 df['std'] = df['std'].apply(lambda x: x if pd.notna(x) else 0)
 df = df[(df['gpu-hours'] > gpu_hours_cutoff) & (df['mean'] < util_cutoff)]
 
@@ -97,7 +99,7 @@ userfile = '/scratch/gpfs/jdh4/gpustat/cached_users.csv'
 ldap = pd.read_csv(userfile, header=0) if Path(datafile) else pd.DataFrame()
 # join the two dataframes
 df = pd.merge(df, ldap, how='left', left_on=['username'], right_on=['NETID'])
-# performing sorting
+# perform sorting
 sortby, isascend = ('gpu-hours', False) if args.r else ('mean', True)
 df = df.sort_values(by=sortby, ascending=isascend)
 df['gpu-hours'] = df['gpu-hours'].apply(round).astype(str).apply(lambda x: x + '  ')
@@ -127,10 +129,12 @@ print('')
 if (args.d or args.s):
   print(center('TigerGPU Usage', num_chars))
 else:
-  print(center('TigerGPU Utilization', num_chars))
+  print(center('TigerGPU Utilization and Usage', num_chars))
 print(center(range_begin + ' - ' + range_end, num_chars))
-if (not args.d and not args.s):
+if (not args.d and not args.s and thisuser == '-1'):
   print(center('Overall GPU utilization = %.1f%%' % overall_utilization, num_chars))
+  pct_idle = 100 * (1.0 - overall_hours / (total_gpus * hours))
+  print(center('Idle GPUs = %.1f%%' % pct_idle, num_chars))
 if df.empty:
   print('No results were found.')
 else:
