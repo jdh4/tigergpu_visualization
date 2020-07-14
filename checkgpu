@@ -44,9 +44,11 @@ args = psr.parse_args()
 
 # spacing in minutes between samples (set by how data is collected)
 sampling_freq = 10
+
 minutes_per_hour = 60.0
+seconds_per_minute = 60.0
 ratio = sampling_freq / minutes_per_hour
-total_gpus = 312
+total_gpus = 4 * 78
 
 hours = args.hours
 if (hours < ratio):
@@ -72,11 +74,13 @@ df.columns = ['timestamp', 'username', 'usage']
 
 # filter old records and idle nodes
 now = int(time())
-seconds_in_window = hours * 60 * 60
+seconds_in_window = hours * minutes_per_hour * seconds_per_minute
 if thisuser != '-1':
   df = df[(df.timestamp >= now - seconds_in_window) & (df.username == thisuser)]
 else:
-  df = df[(df.timestamp >= now - seconds_in_window) & pd.notna(df.username)]
+  idle = df[(df.timestamp >= now - seconds_in_window) & pd.isna(df.username)]
+  df   = df[(df.timestamp >= now - seconds_in_window) & pd.notna(df.username)]
+  pct_idle = 100.0 * idle.shape[0] / (df.shape[0] + idle.shape[0])
 if df.empty:
   print('\nNo results found.\n')
   sys.exit(1)
@@ -90,7 +94,6 @@ overall_utilization = df.usage.mean()
 df = df.groupby(by='username').agg([np.size, np.mean, np.std]).reset_index()
 df.columns = ['username', 'gpu-hours', 'mean', 'std']
 df['gpu-hours'] = df['gpu-hours'] / (minutes_per_hour / sampling_freq)
-overall_hours = df['gpu-hours'].sum()
 df['std'] = df['std'].apply(lambda x: x if pd.notna(x) else 0)
 df = df[(df['gpu-hours'] > gpu_hours_cutoff) & (df['mean'] < util_cutoff)]
 
@@ -133,8 +136,7 @@ else:
 print(center(range_begin + ' - ' + range_end, num_chars))
 if (not args.d and not args.s and thisuser == '-1'):
   print(center('Overall GPU utilization = %.1f%%' % overall_utilization, num_chars))
-  pct_idle = 100 * (1.0 - overall_hours / (total_gpus * hours))
-  print(center('Idle GPUs = %.1f%%' % pct_idle, num_chars))
+  print(center('Active GPUs/Idle GPUs = %.1f%%/%.1f%%' % (100 - pct_idle, pct_idle), num_chars))
 if df.empty:
   print('No results were found.')
 else:
