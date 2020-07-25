@@ -34,8 +34,8 @@ psr.add_argument('-u', type=str, action='store', dest='netid',
     default='-1', help='Create report for a single user')
 psr.add_argument('-r', action='store_true', help='Flag to sort by GPU-hours \
     instead of mean utilization (does not work with -d or -s)')
-psr.add_argument('-d', action='store_true', help='Flag to show usage grouped \
-    by department (only -t allowed, e.g., checkgpu -t 48 -d)')
+psr.add_argument('-p', action='store_true', help='Flag to show usage grouped \
+    by department (only -t allowed, e.g., checkgpu -t 48 -p)')
 psr.add_argument('-s', action='store_true', help='Flag to show usage grouped \
     by sponsor (only -t allowed, e.g., checkgpu -t 48 -s)')
 psr.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
@@ -58,7 +58,7 @@ gpu_hours_cutoff = args.gpu_hours_cutoff
 util_cutoff = args.util_cutoff
 thisuser = args.netid
 
-if args.d or args.s:
+if args.p or args.s:
   thisuser = '-1'
   gpu_hours_cutoff = 0
   util_cutoff = 100
@@ -66,7 +66,7 @@ if args.d or args.s:
 ###############################################################################
 datafile = '/scratch/gpfs/jdh4/gpustat/utilization.csv'
 from pathlib import Path
-if not Path(datafile):
+if not Path(datafile).exists():
   print('Data file not found: %s. Are you on the tiger cluster?' % datafile)
   sys.exit(1)
 df = pd.read_csv(datafile, header=None, usecols=[0, 3, 4])
@@ -99,7 +99,7 @@ df = df[(df['gpu-hours'] > gpu_hours_cutoff) & (df['mean'] < util_cutoff)]
 
 # read cached user data
 userfile = '/scratch/gpfs/jdh4/gpustat/cached_users.csv'
-ldap = pd.read_csv(userfile, header=0) if Path(datafile) else pd.DataFrame()
+ldap = pd.read_csv(userfile, header=0) if Path(userfile) else pd.DataFrame()
 # join the two dataframes
 df = pd.merge(df, ldap, how='left', left_on=['username'], right_on=['NETID'])
 # perform sorting
@@ -111,8 +111,8 @@ df['std'] = df['std'].apply(round).astype(str).apply(lambda x: x + '  ')
 df = df[['username', 'mean', 'std', 'gpu-hours', 'POSITION', 'DEPT', 'SPONSOR']]
 df.columns = ['USERNAME', 'MEAN(%)', 'STD(%)', 'GPU-HOURS', 'POSITION', 'DEPT', 'SPONSOR']
 
-if args.d or args.s:
-  field = 'DEPT' if args.d else 'SPONSOR'
+if args.p or args.s:
+  field = 'DEPT' if args.p else 'SPONSOR'
   df['GPU-HOURS'] = df['GPU-HOURS'].astype(int)
   df = df[[field, 'GPU-HOURS']].groupby(by=field).agg(np.sum).reset_index()
   df['PROPORTION(%)'] = 100 * df['GPU-HOURS'] / df['GPU-HOURS'].sum()
@@ -129,12 +129,12 @@ def center(text, n):
   return spaces + text
 
 print('')
-if (args.d or args.s):
+if (args.p or args.s):
   print(center('TigerGPU Usage', num_chars))
 else:
   print(center('TigerGPU Utilization and Usage', num_chars))
 print(center(range_begin + ' - ' + range_end, num_chars))
-if (not args.d and not args.s and thisuser == '-1'):
+if (not args.p and not args.s and thisuser == '-1'):
   print(center('Overall GPU utilization = %.1f%%' % overall_utilization, num_chars))
   print(center('Active GPUs/Idle GPUs = %.1f%%/%.1f%%' % (100 - pct_idle, pct_idle), num_chars))
 if df.empty:

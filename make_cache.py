@@ -14,7 +14,7 @@ netids.remove('+')
 
 univ_info = ldap_plus(netids)
 df = pd.DataFrame(univ_info[1:], columns=univ_info[0])
-cols = ['NETID', 'POSITION', 'DEPT', 'SPONSOR']
+cols = ['NETID', 'POSITION', 'DEPT', 'NAME', 'SPONSOR']
 df = df[cols]
 df = df[pd.notna(df.POSITION) | pd.notna(df.DEPT) | pd.notna(df.SPONSOR)]
 df.to_csv('/scratch/gpfs/jdh4/gpustat/cached_users.csv', columns=cols, index=False)

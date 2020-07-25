@@ -179,7 +179,7 @@ def ldap_plus(netids):
     else:
       # netid_true is the true netid while netid may be an alias
       netid_true = record['uid']
-      name = record['displayName']
+      name = record['cn']  # sponsor_report uses cn to get name
       dept = record['ou']
       title = record['title']
       stat = record['pustatus']

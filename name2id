@@ -1,0 +1,105 @@
+#!/usr/licensed/anaconda3/2020.2/bin/python
+import sys
+sys.path = list(filter(lambda p: p.startswith("/usr"), sys.path))
+sys.path.append('/scratch/gpfs/jdh4/gpustat/fuzzywuzzy')
+import pandas as pd
+from fuzzywuzzy import process
+
+def print_help():
+  print("")
+  print("name2id converts a name to a netid. It is based on")
+  print("\"getent passwd\" so the person must already have an account.")
+  print("Bad misspellings are tolerated due to fuzzy string matching.")
+  print("")
+  print("Examples:")
+  print("\t$ name2id karolena row-redwood")
+  print("\t$ name2id anatolie spitz")
+  print("\t$ name2id debenetti")
+  print("\t$ name2id irene")
+  print("\t$ name2id kurt hilltop")
+  print("")
+
+def fix_lastname_first_comma(full_name):
+  parts = full_name.split()
+  if (parts[0].endswith(',')):
+    return ' '.join(parts[1:] + [parts[0][:-1]])
+  else:
+    return full_name
+
+# if continue with this then all for search by only lastname
+# and remove middle initial if doing full name search
+def remove_middle_initial(full_name):
+  parts = full_name.split()
+  cnt = len(parts)
+  if (cnt > 2):
+    for i in range(1, cnt - 1):
+      if (parts[i].endswith('.') and (len(parts[i]) == 2)) or len(parts[i]) == 1:
+        _ = parts.pop(i)
+      return ' '.join(parts)
+  else:
+    return full_name
+
+def print_dataframe(df_str):
+  width = max([len(row) for row in df_str])
+  print('')
+  print(df_str[0])
+  print(''.join(['='] * width))
+  print('\n'.join(df_str[1:]))
+  print(''.join(['='] * width))
+  print('')
+
+def getent_passwd():
+  from subprocess import run
+  try:
+    output = run("getent passwd", capture_output=True, shell=True, timeout=3)
+  except:
+    print("getent passwd failed. Exit ...")
+    sys.exit(1)
+  lines = output.stdout.decode("utf-8").split('\n')
+  df = pd.DataFrame(lines, columns=['raw'])
+  df = df.raw.str.split(':', expand=True)
+  # crusley:*:117706:30014:Calvin Rusley,GEO,Tullis C. Onstott:/home/crusley:/sbin/nologin
+  pd.set_option("display.max_rows", None, "display.max_columns", None)
+  df.columns = ['NETID', 'chr', 'uid', 'gid', 'name_sponsor', 'path1', 'path2']
+  df = df.drop(columns=['chr', 'uid', 'gid', 'path1', 'path2'])
+  df = df[pd.notna(df.name_sponsor) & df.name_sponsor.str.contains(',')]
+  df['SPONSOR'] = df.name_sponsor.apply(lambda u: u.split(',')[-1])
+  df['DEPT'] = df.name_sponsor.apply(lambda u: u.split(',')[-2] if u.count(',') > 1 else u)
+  df['NAME'] = df.name_sponsor.apply(lambda u: ' '.join(u.split(',')[:-2]) if u.count(',') > 1 else u)
+  return df[['NETID', 'NAME', 'DEPT', 'SPONSOR']]
+
+if __name__ == "__main__":
+  # check for help menu
+  name = ' '.join(sys.argv[1:])
+  if (' -h' in ' ' + name or '--help' in name):
+    print_help()
+    sys.exit(0)
+  # cluster dependent
+  cols = ['NETID', 'NAME', 'DEPT', 'POSITION', 'SPONSOR', 'PROBABILITY']
+  import socket
+  if 'tiger' in socket.gethostname():
+    userfile = "/scratch/gpfs/jdh4/gpustat/cached_users.csv"
+    from pathlib import Path
+    if Path(userfile).exists():
+      df = pd.read_csv(userfile, header=0)
+    else:
+      print(userfile, "not found. Exiting ...")
+      sys.exit(1)
+  else:
+    df = getent_passwd()
+    cols.remove('POSITION')
+  # clean and merge
+  df.NAME = df.NAME.apply(fix_lastname_first_comma)
+  df['NO_MIDDLE'] = df.NAME.apply(remove_middle_initial)
+  choices = list(df.NO_MIDDLE.values)
+  matches = process.extract(name, choices, limit=5)
+  matches_df = pd.DataFrame(matches, columns=['NO_MIDDLE', 'PROBABILITY'])
+  matches_df.PROBABILITY = 0.01 * matches_df.PROBABILITY
+  df = pd.merge(df, matches_df, how='right', on='NO_MIDDLE')
+  df = df.drop_duplicates() # needed for bill
+  if df.empty:
+    print('No results were found.')
+  else:
+    df = df[cols].sort_values(by='PROBABILITY', ascending=False)
+    df_str = df.fillna('').to_string(index=False)
+    print_dataframe(df_str.split('\n'))
