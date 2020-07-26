@@ -14,20 +14,28 @@ psr = argparse.ArgumentParser(add_help=False,
   description='Examine GPU utilization and usage of TigerGPU',
   formatter_class=argparse.RawDescriptionHelpFormatter,
   epilog=textwrap.dedent('''
-  Show utilization for all users over the last week:
+  Utilization is the fraction of time that a kernel is running on the GPU.
+  For instance, a code with a main loop that runs a GPU kernel for 3 seconds
+  and then does CPU work for 2 seconds has a utilization of 60%. Usage is a
+  measure of the allocated GPU resources (it is independent of utilization).
+  A code that runs for 12 hours using 4 GPUs has a usage of 48 GPU-hours.
+
+  Examples:
+
+  Create report for all users over the last week:
        $ checkgpu -d 7
 
-  GPU usage by department over the last 36 hours:
+  Show GPU usage by department over the last 36 hours:
        $ checkgpu -p -t 36
 
-  Show users with a GPU utilization of less than 25% over the last 12 hours:
-       $ checkgpu -c 25 -t 12
+  Show users with a GPU utilization of less than 15% over the last 12 hours:
+       $ checkgpu -c 15 -t 12
 
-  Show GPU utilization for user dkozuch over last 30 minutes:
+  Create report only for the user dkozuch over last 30 minutes:
        $ checkgpu -u dkozuch -t 0.5
 
-  Show utilization for all users from June 1, 2020 to June 15, 2020:
-       $ checkgpu -e 06/14/2020 -d 15
+  Create report for all users from June 1, 2020 to June 15, 2020:
+       $ checkgpu -e 06/15/2020 -d 15
 '''))
 
 days_default = 1
