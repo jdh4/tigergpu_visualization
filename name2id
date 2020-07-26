@@ -7,9 +7,11 @@ from fuzzywuzzy import process
 
 def print_help():
   print("")
-  print("name2id converts a name to a netid. It is based on")
-  print("\"getent passwd\" so the person must already have an account.")
-  print("Bad misspellings are tolerated due to fuzzy string matching.")
+  print("NAME2ID")
+  print("=======")
+  print("name2id converts a name to a netid using fuzzy string matching so")
+  print("bad misspellings are tolerated. This command is based on \"getent passwd\"")
+  print("so the name must already be associated with an RC account.")
   print("")
   print("Examples:")
   print("\t$ name2id karolena row-redwood")
@@ -71,11 +73,11 @@ def getent_passwd():
 if __name__ == "__main__":
   # check for help menu
   name = ' '.join(sys.argv[1:])
-  if (' -h' in ' ' + name or '--help' in name):
+  if (name == '' or ' -h' in ' ' + name or '--help' in name):
     print_help()
     sys.exit(0)
   # cluster dependent
-  cols = ['NETID', 'NAME', 'DEPT', 'POSITION', 'SPONSOR', 'PROBABILITY']
+  cols = ['NETID/EMAIL', 'NAME', 'DEPT', 'POSITION', 'SPONSOR', 'PROB.']
   userfile = "/scratch/gpfs/jdh4/gpustat/cached_users.csv"
   import socket
   from pathlib import Path
@@ -89,13 +91,14 @@ if __name__ == "__main__":
   df['NO_MIDDLE'] = df.NAME.apply(remove_middle_initial)
   choices = list(df.NO_MIDDLE.values)
   matches = process.extract(name, choices, limit=5)
-  matches_df = pd.DataFrame(matches, columns=['NO_MIDDLE', 'PROBABILITY'])
-  matches_df.PROBABILITY = 0.01 * matches_df.PROBABILITY
+  matches_df = pd.DataFrame(matches, columns=['NO_MIDDLE', 'PROB.'])
+  matches_df['PROB.'] = 0.01 * matches_df['PROB.']
   df = pd.merge(df, matches_df, how='right', on='NO_MIDDLE')
   df = df.drop_duplicates() # needed for bill
+  df['NETID/EMAIL'] = df.NETID.apply(lambda u: u + '@princeton.edu')
   if df.empty:
     print('No results were found.')
   else:
-    df = df[cols].sort_values(by='PROBABILITY', ascending=False)
+    df = df[cols].sort_values(by='PROB.', ascending=False)
     df_str = df.fillna('').to_string(index=False)
     print_dataframe(df_str.split('\n'))

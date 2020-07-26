@@ -1,4 +1,6 @@
 #!/usr/licensed/anaconda3/2020.2/bin/python
+# post issues at https://github.com/jdh4/tigergpu_visualization
+# or write to halverson@princeton.edu
 import sys
 sys.path = list(filter(lambda p: p.startswith("/usr"), sys.path))
 import argparse
@@ -21,11 +23,11 @@ psr = argparse.ArgumentParser(add_help=False,
   Show users with a GPU utilization of less than 25% over the last 12 hours:
        $ checkgpu -c 25 -t 12
 
-  Show GPU utilization of user dkozuch over last 30 minutes:
+  Show GPU utilization for user dkozuch over last 30 minutes:
        $ checkgpu -u dkozuch -t 0.5
 
-  Show utilization for all users from June 1, 2020 to June 14, 2020:
-       $ checkgpu -e 06/14/2020 -d 14
+  Show utilization for all users from June 1, 2020 to June 15, 2020:
+       $ checkgpu -e 06/14/2020 -d 15
 '''))
 
 days_default = 1
@@ -86,14 +88,15 @@ datafile = '/scratch/gpfs/jdh4/gpustat/utilization.csv'
 from pathlib import Path
 if not Path(datafile).exists():
   print('Data file not found: %s. Are you on the tiger cluster?' % datafile)
-  sys.exit(1)
+  sys.exit(0)
 df = pd.read_csv(datafile, header=None, usecols=[0, 3, 4])
 df.columns = ['timestamp', 'username', 'usage']
 
 end_stamp = int(time())
 if (args.end_date):
   try:
-    end_stamp = datetime.strptime(args.end_date, '%m/%d/%Y').timestamp()
+    twelve_hours = 12 * minutes_per_hour * seconds_per_minute
+    end_stamp = datetime.strptime(args.end_date, '%m/%d/%Y').timestamp() + twelve_hours
   except:
     print('Make sure date has format MM/DD/YYYY. Exiting ...')
     sys.exit(1)
@@ -101,10 +104,7 @@ if (args.end_date):
 # filter old records and idle nodes
 seconds_in_window = hours * minutes_per_hour * seconds_per_minute
 min_timestamp = min(df.timestamp)
-if (min_timestamp > end_stamp - seconds_in_window):
-  import warnings
-  warnings.warn('Earliest data was recorded on %s. Time window goes further \
-                 back than this.' % datetime.fromtimestamp(min_timestamp).strftime('%m/%d/%Y'))
+ 
 if thisuser != '-1':
   df = df[(df.timestamp >= end_stamp - seconds_in_window) &
           (df.timestamp < end_stamp) & (df.username == thisuser)]
@@ -120,10 +120,16 @@ if df.empty:
   sys.exit(0)
 
 start_stamp = end_stamp - seconds_in_window
-# round to nearest 10 minutes
-start_stamp_hours = int(start_stamp / 3600)
-minutes = round((start_stamp - 3600 * start_stamp_hours) / 60, -1)
-start_stamp = 3600 * start_stamp_hours + minutes * 60
+if (min_timestamp > start_stamp):
+  min_date = datetime.fromtimestamp(min_timestamp).strftime('%m/%d/%Y')
+  print(("\n*** WARNING: Earliest data was recorded on {0}. Overriding start\n"
+         "date of window. ***").format(min_date))
+  start_stamp = min_timestamp
+else:
+  # round to nearest 10 minutes
+  start_stamp_hours = int(start_stamp / 3600)
+  minutes = round((start_stamp - 3600 * start_stamp_hours) / 60, -1)
+  start_stamp = 3600 * start_stamp_hours + minutes * 60
 
 range_begin = datetime.fromtimestamp(start_stamp).strftime('%-I:%M %p %a (%-m/%-d)')
 range_end   = datetime.fromtimestamp(max(df.timestamp)).strftime('%-I:%M %p %a (%-m/%-d)')
