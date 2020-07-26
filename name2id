@@ -51,9 +51,9 @@ def print_dataframe(df_str):
 def getent_passwd():
   from subprocess import run
   try:
-    output = run("getent passwd", capture_output=True, shell=True, timeout=3)
+    output = run("getent passwd", capture_output=True, shell=True, timeout=5)
   except:
-    print("getent passwd failed. Exit ...")
+    print("getent passwd failed. Exiting ...")
     sys.exit(1)
   lines = output.stdout.decode("utf-8").split('\n')
   df = pd.DataFrame(lines, columns=['raw'])
@@ -76,15 +76,11 @@ if __name__ == "__main__":
     sys.exit(0)
   # cluster dependent
   cols = ['NETID', 'NAME', 'DEPT', 'POSITION', 'SPONSOR', 'PROBABILITY']
+  userfile = "/scratch/gpfs/jdh4/gpustat/cached_users.csv"
   import socket
-  if 'tiger' in socket.gethostname():
-    userfile = "/scratch/gpfs/jdh4/gpustat/cached_users.csv"
-    from pathlib import Path
-    if Path(userfile).exists():
-      df = pd.read_csv(userfile, header=0)
-    else:
-      print(userfile, "not found. Exiting ...")
-      sys.exit(1)
+  from pathlib import Path
+  if 'tiger' in socket.gethostname() and Path(userfile).exists():
+    df = pd.read_csv(userfile, header=0)
   else:
     df = getent_passwd()
     cols.remove('POSITION')

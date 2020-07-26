@@ -12,32 +12,48 @@ psr = argparse.ArgumentParser(add_help=False,
   description='Examine GPU utilization and usage of TigerGPU',
   formatter_class=argparse.RawDescriptionHelpFormatter,
   epilog=textwrap.dedent('''
-  Show users with a GPU utilization of less than 25% over the last two days:
-       $ checkgpu -c 25 -t 48
-
   Show utilization for all users over the last week:
-       $ checkgpu -t 168
+       $ checkgpu -d 7
 
-  GPU usage by department over the last 24 hours (which is default time window):
-       $ checkgpu -d
+  GPU usage by department over the last 36 hours:
+       $ checkgpu -p -t 36
+
+  Show users with a GPU utilization of less than 25% over the last 12 hours:
+       $ checkgpu -c 25 -t 12
+
+  Show GPU utilization of user dkozuch over last 30 minutes:
+       $ checkgpu -u dkozuch -t 0.5
+
+  Show utilization for all users from June 1, 2020 to June 14, 2020:
+       $ checkgpu -e 06/14/2020 -d 14
 '''))
-psr.add_argument('-t', type=float, action='store', dest='hours',
+
+days_default = 1
+grp = psr.add_mutually_exclusive_group(required=False)
+grp.add_argument('-t', type=float, action='store', dest='hours',
     default=24, help='Create report over this many previous hours from now \
-    (default: 24) [1 week = 168 hours, 2 weeks = 336 hours]')
+    (default: 24). Cannot be used with -d.')
+grp.add_argument('-d', type=float, action='store', dest='days', default=days_default,
+    help='Create report over this many previous days from now \
+    (default: 1). Cannot be used with -t.')
 psr.add_argument('-c', type=float, action='store', dest='util_cutoff',
     default=100, help='Only show users with less than this utilization(%%) \
     (default: 100)')
 psr.add_argument('-g', type=float, action='store', dest='gpu_hours_cutoff',
     default=0, help='Ignore users with less than this many gpu-hours in the \
     specified window (default: 0)')
-psr.add_argument('-u', type=str, action='store', dest='netid',
+psr.add_argument('-e', type=str, action='store', dest='end_date',
+    default=None, help='Create report ending on this date and going back in time \
+    from this date by -t <hours> or -d <days> (format MM/DD/YYYY)')
+ext = psr.add_mutually_exclusive_group(required=False)
+ext.add_argument('-u', type=str, action='store', dest='netid',
     default='-1', help='Create report for a single user')
-psr.add_argument('-r', action='store_true', help='Flag to sort by GPU-hours \
-    instead of mean utilization (does not work with -d or -s)')
-psr.add_argument('-p', action='store_true', help='Flag to show usage grouped \
-    by department (only -t allowed, e.g., checkgpu -t 48 -p)')
-psr.add_argument('-s', action='store_true', help='Flag to show usage grouped \
-    by sponsor (only -t allowed, e.g., checkgpu -t 48 -s)')
+ext.add_argument('-r', action='store_true', help='Flag to sort by utilization \
+    instead of GPU-hours (cannot be used with -p or -s)')
+ext.add_argument('-p', action='store_true', help='Flag to show usage grouped \
+    by department (only -t or -d allowed, e.g., checkgpu -d 28 -p)')
+ext.add_argument('-s', action='store_true', help='Flag to show usage grouped \
+    by sponsor (only -t or -d allowed, e.g., checkgpu -d 7 -s)')
 psr.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
                 help='Show this help message and exit.')
 args = psr.parse_args()
@@ -51,9 +67,11 @@ ratio = sampling_freq / minutes_per_hour
 total_gpus = 4 * 78
 
 hours = args.hours
+if (args.days != days_default): hours = 24 * args.days
+
 if (hours < ratio):
-  print('The -t option must be greater than %.3f. Exiting ...' % ratio)
-  sys.exit(1)
+  print('The -t option must be greater than %.3f. Similar for -d. Exiting ...' % ratio)
+  sys.exit(0)
 gpu_hours_cutoff = args.gpu_hours_cutoff
 util_cutoff = args.util_cutoff
 thisuser = args.netid
@@ -72,22 +90,44 @@ if not Path(datafile).exists():
 df = pd.read_csv(datafile, header=None, usecols=[0, 3, 4])
 df.columns = ['timestamp', 'username', 'usage']
 
+end_stamp = int(time())
+if (args.end_date):
+  try:
+    end_stamp = datetime.strptime(args.end_date, '%m/%d/%Y').timestamp()
+  except:
+    print('Make sure date has format MM/DD/YYYY. Exiting ...')
+    sys.exit(1)
+
 # filter old records and idle nodes
-now = int(time())
 seconds_in_window = hours * minutes_per_hour * seconds_per_minute
+min_timestamp = min(df.timestamp)
+if (min_timestamp > end_stamp - seconds_in_window):
+  import warnings
+  warnings.warn('Earliest data was recorded on %s. Time window goes further \
+                 back than this.' % datetime.fromtimestamp(min_timestamp).strftime('%m/%d/%Y'))
 if thisuser != '-1':
-  df = df[(df.timestamp >= now - seconds_in_window) & (df.username == thisuser)]
+  df = df[(df.timestamp >= end_stamp - seconds_in_window) &
+          (df.timestamp < end_stamp) & (df.username == thisuser)]
 else:
-  idle = df[(df.timestamp >= now - seconds_in_window) & pd.isna(df.username)]
-  df   = df[(df.timestamp >= now - seconds_in_window) & pd.notna(df.username)]
-  pct_idle = 100.0 * idle.shape[0] / (df.shape[0] + idle.shape[0])
+  idle = df[(df.timestamp >= end_stamp - seconds_in_window) & (df.timestamp <= end_stamp) &
+            pd.isna(df.username)]
+  df   = df[(df.timestamp >= end_stamp - seconds_in_window) & (df.timestamp <= end_stamp) &
+            pd.notna(df.username)]
+  denom = df.shape[0] + idle.shape[0]
+  pct_idle = 100.0 * idle.shape[0] / denom if denom != 0 else -1
 if df.empty:
   print('\nNo results found.\n')
-  sys.exit(1)
+  sys.exit(0)
 
-range_begin = datetime.fromtimestamp(min(df.timestamp)).strftime('%-I:%M %p %a (%-m/%-d)')
+start_stamp = end_stamp - seconds_in_window
+# round to nearest 10 minutes
+start_stamp_hours = int(start_stamp / 3600)
+minutes = round((start_stamp - 3600 * start_stamp_hours) / 60, -1)
+start_stamp = 3600 * start_stamp_hours + minutes * 60
+
+range_begin = datetime.fromtimestamp(start_stamp).strftime('%-I:%M %p %a (%-m/%-d)')
 range_end   = datetime.fromtimestamp(max(df.timestamp)).strftime('%-I:%M %p %a (%-m/%-d)')
-df = df.drop(['timestamp'], axis=1)
+df = df.drop(columns=['timestamp'])
 
 # compute utilization mean and std for each username then filter
 overall_utilization = df.usage.mean()
@@ -103,7 +143,7 @@ ldap = pd.read_csv(userfile, header=0) if Path(userfile) else pd.DataFrame()
 # join the two dataframes
 df = pd.merge(df, ldap, how='left', left_on=['username'], right_on=['NETID'])
 # perform sorting
-sortby, isascend = ('gpu-hours', False) if args.r else ('mean', True)
+sortby, isascend = ('mean', True) if args.r else ('gpu-hours', False)
 df = df.sort_values(by=sortby, ascending=isascend)
 df['gpu-hours'] = df['gpu-hours'].apply(round).astype(str).apply(lambda x: x + '  ')
 df['mean'] = df['mean'].apply(round).astype(str).apply(lambda x: x + '  ')
