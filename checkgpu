@@ -97,6 +97,7 @@ from pathlib import Path
 if not Path(datafile).exists():
   print('Data file not found: %s. Are you on the tiger cluster?' % datafile)
   sys.exit(0)
+#df = pd.read_hdf('utilization.h5', 'df')
 df = pd.read_csv(datafile, header=None, usecols=[0, 3, 4])
 df.columns = ['timestamp', 'username', 'usage']
 
