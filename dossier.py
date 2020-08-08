@@ -81,7 +81,7 @@ def format_sponsor(s):
 
 def infer_position(edu, aca, title, stat, dept):
   # infer the job position of the user
-  if stat == 'undergraduate' or stat == 'xundergraduate':
+  if stat == 'undergraduate' or stat == 'xundergraduate' or stat == 'ugdcu':
     if dept.startswith('Undergraduate Class of '): return 'Udrg' + dept[-4:]
     return 'Undergrad'
   elif edu == 'alum' and dept.startswith('Undergraduate Class of '):
