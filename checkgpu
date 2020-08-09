@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 from time import time
 from datetime import datetime
+from socket import gethostname
 
 psr = argparse.ArgumentParser(add_help=False,
   description='Examine GPU utilization and usage of TigerGPU',
@@ -68,6 +69,11 @@ psr.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
                 help='Show this help message and exit.')
 args = psr.parse_args()
 
+host = gethostname().lower()
+if ('tiger' not in host and 'tigressdata' not in host):
+  print("Run script from tiger, tigercpu, tigergpu or tigressdata. Exiting ...")
+  sys.exit(0)
+
 # spacing in minutes between samples (set by how data is collected)
 sampling_freq = 10
 
@@ -93,6 +99,8 @@ if args.p or args.s:
 
 ###############################################################################
 datafile = '/scratch/gpfs/jdh4/gpustat/utilization.csv'
+if ('tigressdata' in host):
+  datafile = '/tiger' + datafile
 from pathlib import Path
 if not Path(datafile).exists():
   print('Data file not found: %s. Are you on the tiger cluster?' % datafile)
@@ -154,6 +162,8 @@ df = df[(df['gpu-hours'] > gpu_hours_cutoff) & (df['mean'] < util_cutoff)]
 
 # read cached user data
 userfile = '/scratch/gpfs/jdh4/gpustat/cached_users.csv'
+if ('tigressdata' in host):
+  userfile = '/tiger' + userfile
 ldap = pd.read_csv(userfile, header=0) if Path(userfile) else pd.DataFrame()
 # join the two dataframes
 df = pd.merge(df, ldap, how='left', left_on=['username'], right_on=['NETID'])
@@ -164,7 +174,7 @@ df['gpu-hours'] = df['gpu-hours'].apply(round).astype(str).apply(lambda x: x + '
 df['mean'] = df['mean'].apply(round).astype(str).apply(lambda x: x + '  ')
 df['std'] = df['std'].apply(round).astype(str).apply(lambda x: x + '  ')
 df = df[['username', 'mean', 'std', 'gpu-hours', 'POSITION', 'DEPT', 'SPONSOR']]
-df.columns = ['USERNAME', 'MEAN(%)', 'STD(%)', 'GPU-HOURS', 'POSITION', 'DEPT', 'SPONSOR']
+df.columns = ['USER', 'MEAN(%)', 'STD(%)', 'GPU-HOURS', 'POSITION', 'DEPT', 'SPONSOR']
 
 if args.p or args.s:
   field = 'DEPT' if args.p else 'SPONSOR'
