@@ -137,14 +137,13 @@ def remove_old_files():
 def write_data():
   _, _, timestamps = zip(*usage_user.keys())
   tmax = max(timestamps)
-  f = open('utilization.csv', 'a')
-  for node in nodes:
-    for gpu_index in range(gpus_per_node):
-      mykey = (node, gpu_index, tmax)
-      if (mykey in usage_user):
-        usage, username = usage_user[mykey]
-        f.write('%d,%s,%d,%s,%d\n' % (int(tmax), node, gpu_index, username, usage))
-  f.close()
+  with open('utilization.csv', 'a') as f:
+    for node in nodes:
+      for gpu_index in range(gpus_per_node):
+        mykey = (node, gpu_index, tmax)
+        if (mykey in usage_user):
+          usage, username = usage_user[mykey]
+          f.write('%d,%s,%d,%s,%d\n' % (int(tmax), node, gpu_index, username, usage))
 
 # generate the node names
 nodes = ['tiger-i' + str(i) + 'g' + str(j+1) for i in range(19, 24) for j in range(16)]
