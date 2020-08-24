@@ -1,3 +1,5 @@
+#!/usr/licensed/anaconda3/2020.7/bin/python
+
 # send an email if there are cases of low utilization
 
 import subprocess
