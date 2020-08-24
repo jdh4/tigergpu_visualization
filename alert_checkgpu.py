@@ -1,3 +1,5 @@
+# send an email if there are cases of low utilization
+
 import subprocess
 
 def low_utilization():
@@ -5,10 +7,10 @@ def low_utilization():
   output = subprocess.run(cmd, shell=True, capture_output=True)
   lines = output.stdout.decode("utf-8").split('\n')
 
-  cases = []
   if "No results were found" in lines[5]:
     return []
   else:
+    cases = []
     skip = ['mcmuniz', 'dongdong']
     lines = lines[8:-3]
     for line in lines:
@@ -23,7 +25,7 @@ def low_utilization():
         cases.append([user, util, std, hours])
       else:
         pass
-  return cases
+    return cases
 
 if __name__ == '__main__':
   cases = low_utilization()
