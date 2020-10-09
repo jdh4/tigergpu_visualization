@@ -1,6 +1,8 @@
-#!/usr/licensed/anaconda3/2020.2/bin/python
+#!/usr/licensed/anaconda3/2020.2/bin/python -u
+
 # post issues at https://github.com/jdh4/tigergpu_visualization
 # or write to halverson@princeton.edu
+
 import sys
 sys.path = list(filter(lambda p: p.startswith("/usr"), sys.path))
 import argparse

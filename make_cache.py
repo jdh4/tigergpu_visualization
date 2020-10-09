@@ -1,4 +1,5 @@
 #!/usr/licensed/anaconda3/2020.7/bin/python
+
 import sys
 sys.path = list(filter(lambda p: p.startswith("/usr"), sys.path))
 sys.path.append('/scratch/gpfs/jdh4/gpustat')
