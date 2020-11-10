@@ -8,7 +8,7 @@ The `checkgpu` command shows the mean GPU utilization and overall usage by user,
 
 ### How to use it?
 
-Add this line to your `~/.bashrc` file on each cluster (Adroit, Della, Perseus, Tiger, Tigressdata and Traverse):
+Add this line to your `~/.bashrc` file on each cluster (Tiger and Tigressdata):
 
 ```bash
 alias checkgpu='/home/jdh4/bin/checkgpu'
