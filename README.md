@@ -1,6 +1,6 @@
 # TigerGPU Visualization
 
-This repo contains a set of scripts used for monitoring GPU utilization and usage on TigerGPU.
+This repo contains a set of scripts for monitoring GPU utilization and usage on TigerGPU.
 
 ## checkgpu
 
