@@ -25,19 +25,19 @@ psr = argparse.ArgumentParser(add_help=False,
 
   Examples:
 
-  Create report for all users over the last week:
+    Create report for all users over the last week:
        $ checkgpu -d 7
 
-  Show GPU usage by department over the last 36 hours:
+    Show GPU usage by department over the last 36 hours:
        $ checkgpu -p -t 36
 
-  Show users with a GPU utilization of less than 15% over the last 12 hours:
+    Show users with a GPU utilization of less than 15% over the last 12 hours:
        $ checkgpu -c 15 -t 12
 
-  Create report only for the user dkozuch over last 30 minutes:
+    Create report only for the user dkozuch over last 30 minutes:
        $ checkgpu -u dkozuch -t 0.5
 
-  Create report for all users from June 1, 2020 to June 15, 2020:
+    Create report for all users from June 1, 2020 to June 15, 2020:
        $ checkgpu -e 06/15/2020 -d 15
 '''))
 
@@ -103,7 +103,7 @@ datafile = '/scratch/gpfs/jdh4/gpustat/utilization.csv'
 if ('tigressdata' in host):
   datafile = '/tiger' + datafile
 from pathlib import Path
-if not Path(datafile).exists():
+if not Path(datafile).is_file():
   print('Data file not found: %s. Are you on the tiger cluster?' % datafile)
   sys.exit(0)
 #df = pd.read_hdf('utilization.h5', 'df')
@@ -159,7 +159,7 @@ df = df.groupby(by='username').agg([np.size, np.mean, np.std]).reset_index()
 df.columns = ['username', 'gpu-hours', 'mean', 'std']
 df['gpu-hours'] = df['gpu-hours'] / (minutes_per_hour / sampling_freq)
 df['std'] = df['std'].apply(lambda x: x if pd.notna(x) else 0)
-df = df[(df['gpu-hours'] > gpu_hours_cutoff) & (df['mean'] < util_cutoff)]
+df = df[(df['gpu-hours'] > gpu_hours_cutoff) & (df['mean'] <= util_cutoff)]
 
 # read cached user data
 userfile = '/scratch/gpfs/jdh4/gpustat/cached_users.csv'
