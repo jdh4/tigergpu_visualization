@@ -17,6 +17,5 @@ alias checkgpu='/home/jdh4/bin/checkgpu'
 Then look at the examples at the bottom of the help menu:
 
 ```
-# ssh tiger, tigergpu or tigressdata
 $ checkgpu -h
 ```
