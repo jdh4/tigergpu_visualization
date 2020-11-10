@@ -1,6 +1,6 @@
 # TigerGPU Visualization
 
-The Python script tigergpu_usage.py creates a figure to monitor GPU utilization and usage on TigerGPU.
+This repo contains a set of scripts used for monitoring GPU utilization and usage on TigerGPU.
 
 ## checkgpu
 
