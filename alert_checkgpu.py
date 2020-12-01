@@ -5,7 +5,7 @@
 import subprocess
 
 def low_utilization():
-  cmd = "/scratch/gpfs/jdh4/gpustat/checkgpu -d 2 -c 10 -g 24"
+  cmd = "/home/jdh4/bin/checkgpu -d 2 -c 10 -g 24"
   output = subprocess.run(cmd, shell=True, capture_output=True)
   lines = output.stdout.decode("utf-8").split('\n')
 
