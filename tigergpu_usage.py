@@ -41,7 +41,7 @@ def process_gpustat_output(myfile):
     pass
 
 def process_all_files():
-  gpufiles = glob('*.gpustat')
+  gpufiles = glob('/scratch/gpfs/jdh4/gpustat/dot_gpustat/*.gpustat')
   for gpufile in gpufiles:
     process_gpustat_output(gpufile)
 
@@ -126,7 +126,7 @@ def remove_old_files():
   """Remove gpustat files that are more than an hour old if there
      are more than the minimum needed files."""
   import os
-  gpufiles = glob('*.gpustat')
+  gpufiles = glob('/scratch/gpfs/jdh4/gpustat/dot_gpustat/*.gpustat')
   if (len(gpufiles) > len(nodes) * num_snapshots):
     for gpufile in gpufiles:
       timestamp = int(gpufile.split('.')[1])
@@ -144,6 +144,10 @@ def write_data():
         if (mykey in usage_user):
           usage, username = usage_user[mykey]
           f.write('%d,%s,%d,%s,%d\n' % (int(tmax), node, gpu_index, username, usage))
+
+###############################
+## if __name__ == "__main__" ##
+###############################
 
 # generate the node names
 nodes = ['tiger-i' + str(i) + 'g' + str(j+1) for i in range(19, 24) for j in range(16)]
@@ -166,7 +170,7 @@ usage_user = {}
 timestamp = str(int(time()))
 for node in nodes:
   gpustat_file = node + "." + timestamp + ".gpustat"
-  cmd = "ssh -o ConnectTimeout=5 " + node + " \"gpustat > /scratch/gpfs/jdh4/gpustat/" + \
+  cmd = "ssh -o ConnectTimeout=5 " + node + " \"gpustat > /scratch/gpfs/jdh4/gpustat/dot_gpustat/" + \
          gpustat_file + "\" > /dev/null 2>&1"
   try:
      # run the command via ssh on the compute nodes

@@ -1,2 +1,3 @@
 0,10,20,30,40,50 * * * * /scratch/gpfs/jdh4/gpustat/gpu.sh > /dev/null 2>&1
 0 5 * * 1,3,5 /scratch/gpfs/jdh4/gpustat/make_cache.py > /dev/null 2>&1
+0 9 * * 1,3,5 /scratch/gpfs/jdh4/gpustat/alert_checkgpu.py > /dev/null 2>&1
