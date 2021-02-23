@@ -174,7 +174,7 @@ for node in nodes:
          gpustat_file + "\" > /dev/null 2>&1"
   try:
      # run the command via ssh on the compute nodes
-     _ = subprocess.run(cmd, shell=True)
+     _ = subprocess.run(cmd, shell=True, timeout=5)
   except:
     # failure here will cleanly result in "NO INFO" downstream
     pass
