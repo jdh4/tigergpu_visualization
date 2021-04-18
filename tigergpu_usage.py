@@ -7,6 +7,7 @@ import subprocess
 from datetime import datetime, timedelta
 from glob import glob
 from time import time
+import re
 
 #tiger-i19g1  Mon Mar  2 12:22:58 2020
 #[0] Tesla P100-PCIE-16GB | 41'C,  55 % |  1656 / 16280 MB | tgartner(255M)
@@ -81,6 +82,8 @@ def gpu_labels(gpu_index, node):
   return lbl
 
 def create_image():
+  import matplotlib
+  matplotlib.use('Agg')
   import matplotlib.pyplot as plt
   _, _, timestamps = zip(*usage_user.keys())
   times = sorted(set(timestamps))
@@ -151,13 +154,20 @@ def write_data():
 
 # generate the node names
 nodes = ['tiger-i' + str(i) + 'g' + str(j+1) for i in range(19, 24) for j in range(16)]
-nodes.remove('tiger-i19g5')
-nodes.remove('tiger-i23g13')
-cryoem = ['tiger-h' + str(i) + 'g' + str(j) for i in range(19, 27) for j in [1, 2]] + \
-         ['tiger-i26g1', 'tiger-i26g2']
-cryoem.remove('tiger-h22g1')
-#nodes += cryoem  # do not include cryoem node
-assert len(nodes) == 78, "Assert: Node count"
+cryoem = []
+
+# remove down and drained nodes
+cmd = "timeout 3 snodes | grep -E 'drain.*gpu |down.*gpu ' | grep -v 'all '"
+# be careful of all versus alloc for other patterns (no problem above)
+try:
+  output = subprocess.run(cmd, capture_output=True, shell=True, timeout=3)
+  lines = output.stdout.decode("utf-8").split('\n')
+  for line in lines:
+    bad_node = line.split()[0]
+    if re.match('tiger-i[12][01239]g[0-9]{1,2}', bad_node):
+      nodes.remove(bad_node)
+except:
+  pass
 
 # total expected gpus (equal to number of rows)
 gpus_per_node = 4
@@ -170,7 +180,7 @@ usage_user = {}
 timestamp = str(int(time()))
 for node in nodes:
   gpustat_file = node + "." + timestamp + ".gpustat"
-  cmd = "ssh -o ConnectTimeout=5 " + node + " \"gpustat > /scratch/gpfs/jdh4/gpustat/dot_gpustat/" + \
+  cmd = "timeout 7 ssh -o ConnectTimeout=5 " + node + " \"gpustat > /scratch/gpfs/jdh4/gpustat/dot_gpustat/" + \
          gpustat_file + "\" > /dev/null 2>&1"
   try:
      # run the command via ssh on the compute nodes
