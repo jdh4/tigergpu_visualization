@@ -9,6 +9,49 @@ from glob import glob
 from time import time
 import re
 
+#tiger-h26c1n7,tiger-i26c1n[18,22,24],tiger-i26c2n13
+#tiger-h20c1n6,tiger-h25c2n[9-10],tiger-h26c2n[6-7]
+#tiger-h25c2n[1,4,6,10-12,15]
+#tiger-i25c1n[13-16]
+#tiger-i25c1n9
+
+#sihuid   R 6        6 1    gpu:2      tiger-i23g13
+#smondal  R 1        8 1    gpu:1      tiger-i20g16
+#vcorbit  R 1        1 1    gpu:1      tiger-i23g15
+
+def extract_from_range(hosts):
+  # handles cases with ranges such as tiger-h26c2n[6-7]
+  base = hosts[:hosts.index("[")]
+  other = hosts[hosts.index("[") + 1:-1]
+  individs = []
+  for num in other.split(","):
+    if "-" in num:
+      start, end = map(int, num.split("-"))
+      individs.extend(map(lambda x: base + str(x), list(range(start, end + 1))))
+    else:
+      individs.append(base + num)
+  return individs
+
+def extract_nodes(hosts):
+  single_hosts = []
+  for host in hosts:
+    if host.startswith("iger"): host = "t" + host
+    if "[" in host:
+      single_hosts.extend(extract_from_range(host))
+    else:
+      single_hosts.append(host)
+  return single_hosts
+
+def squeue_gpus(node):
+  names = []
+  for line in singles:
+    user, state, cores, num_nodes, gres, host = line.split()
+    if node == host:
+      num_gpus = int(gres.split(":")[1])
+      for _ in range(num_gpus):
+        names.append(user)
+  return names
+
 #tiger-i19g1  Mon Mar  2 12:22:58 2020
 #[0] Tesla P100-PCIE-16GB | 41'C,  55 % |  1656 / 16280 MB | tgartner(255M)
 #[1] Tesla P100-PCIE-16GB | 42'C,  54 % |  1656 / 16280 MB | tgartner(881M)
@@ -21,7 +64,7 @@ def extract_username(myfield):
   else:
     return ''
 
-def process_gpustat_output(myfile):
+def process_gpustat_output(myfile, max_stamp):
   """This function takes a text file of gpustat output and
      it extracts and stores the relevant data."""
   with open(myfile, 'r') as f:
@@ -30,28 +73,64 @@ def process_gpustat_output(myfile):
     node_timestamp = lines[0]
     node = node_timestamp.split()[0]
     timestamp = int(myfile.split('.')[1])
+    ggpus = ['', '', '', '']
+    ggpus_count = 0
     for line in lines[1:]:
       # assuming that we can split on white space to separate fields
       fields = line.strip().split()
       gpu_index = int(fields[0].replace('[', '').replace(']', ''))
       percent_usage = int(fields[5])
       username = '' if len(fields) < 14 else extract_username(fields[13])
-      usage_user[(node, gpu_index, timestamp)] = (percent_usage, username)
+      usage_user[(node, gpu_index, timestamp)] = (percent_usage, username, True)
+      if timestamp == max_stamp:
+        ggpus[gpu_index] = username
+        if username != '': ggpus_count += 1
+ 
+    if timestamp == max_stamp:
+      # check for mismatch between allocated gpus (squeue) and active gpus (gpustat)
+      sgpus = squeue_gpus(node)
+      if len(sgpus) > ggpus_count and len(sgpus) <= 4:
+        # users have allocated gpus without gpu processes
+        for name in ggpus:
+          if name in sgpus: sgpus.remove(name)
+        sgpus.sort()
+
+        # fill in missing names
+        changed_indices = []
+        ptr = 0
+        for i in range(4):
+          if ggpus[i] == '' and ptr < len(sgpus):
+            usage_user[(node, i, timestamp)] = (0, sgpus[ptr], False)
+            ggpus[i] = sgpus[ptr]
+            ptr += 1
+            changed_indices.append(i)
+
+        # overwrite files with usernames for new entries
+        for i in changed_indices:
+          name = ggpus[i]
+          lines[i + 1] = lines[i + 1].replace("16280 MB |", f"16280 MB | {name}(0M)") 
+        with open(myfile, 'w') as f:
+          for line in lines:
+            f.write(line)
+
   except:
     # failure here will cleanly result in "NO INFO" downstream
     pass
 
 def process_all_files():
   gpufiles = glob('/scratch/gpfs/jdh4/gpustat/dot_gpustat/*.gpustat')
+  max_stamp = max(map(lambda x: int(x.split(".")[1]), gpufiles))
   for gpufile in gpufiles:
-    process_gpustat_output(gpufile)
+    process_gpustat_output(gpufile, max_stamp)
 
-def cell_color(username, usage):
+def cell_color(username, usage, gpu_proc):
   # set cell color
   if (username == '' or username == 'NO INFO'):
      fcolor = '#CCCCCC'
-  elif (usage == 0):
+  elif (usage == 0 and gpu_proc):
      fcolor = "#000000"
+  elif (usage == 0 and not gpu_proc):
+     fcolor = "#000099"
   elif (usage < 25):
      fcolor = "#FF0000"
   elif (usage < 50):
@@ -62,7 +141,7 @@ def cell_color(username, usage):
      fcolor = "#FFFFFF"
   return fcolor
 
-def celltext(username, usage):
+def celltext(node, j, username, usage):
   # text for each cell
   if (username == ''):
     ctext = 'IDLE'
@@ -88,7 +167,7 @@ def create_image():
   _, _, timestamps = zip(*usage_user.keys())
   times = sorted(set(timestamps))
   times = times[-num_snapshots:]
-  # next line prevents IndexError in ax[idx, j] when script ran for first time
+  # next line prevents IndexError in ax[idx, j] when script runs for first time
   if len(times) == 1: times = 2 * times
   fig, ax = plt.subplots(nrows=num_gpus, ncols=len(times), figsize=(10, 80))
   for i, node in enumerate(nodes):
@@ -97,10 +176,10 @@ def create_image():
         for j, t in enumerate(times):
           mykey = (node, gpu_index, t)
           if (mykey in usage_user):
-            usage, username = usage_user[mykey]
+            usage, username, gpu_proc = usage_user[mykey]
           else:
             usage, username = (-1, 'NO INFO')
-          ax[idx, j].set_facecolor(cell_color(username, usage))
+          ax[idx, j].set_facecolor(cell_color(username, usage, gpu_proc))
           # remove spines and ticks
           for side in ['top', 'right', 'bottom', 'left']:
             ax[idx, j].spines[side].set_visible(False)
@@ -108,7 +187,7 @@ def create_image():
           ax[idx, j].get_yaxis().set_ticks([])
           # set cell and labels text
           txtclr = 'w' if (usage < 25 or username == '') else 'k'
-          ax[idx, j].text(0.5, 0.5, celltext(username, usage), fontsize=10, color=txtclr, \
+          ax[idx, j].text(0.5, 0.5, celltext(node, j, username, usage), fontsize=10, color=txtclr, \
                           ha='center', va='center', transform=ax[idx, j].transAxes)
           # node and gpu index labels
           if (j == 0): ax[idx, j].set_ylabel(gpu_labels(gpu_index, node), fontsize=12, \
@@ -145,7 +224,7 @@ def write_data():
       for gpu_index in range(gpus_per_node):
         mykey = (node, gpu_index, tmax)
         if (mykey in usage_user):
-          usage, username = usage_user[mykey]
+          usage, username, gpu_proc = usage_user[mykey]
           f.write('%d,%s,%d,%s,%d\n' % (int(tmax), node, gpu_index, username, usage))
 
 ###############################
@@ -155,19 +234,39 @@ def write_data():
 # generate the node names
 nodes = ['tiger-i' + str(i) + 'g' + str(j+1) for i in range(19, 24) for j in range(16)]
 cryoem = []
+squeue_lines = []
 
-# remove down and drained nodes
-cmd = "timeout 3 snodes | grep -E 'drain.*gpu |down.*gpu ' | grep -v 'all '"
-# be careful of all versus alloc for other patterns (no problem above)
+# remove down and drained nodes while finding idle nodes
+cmd = "timeout 3 sinfo -p gpu --Node -h | grep -E 'drain|down'"
 try:
   output = subprocess.run(cmd, capture_output=True, shell=True, timeout=3)
   lines = output.stdout.decode("utf-8").split('\n')
   for line in lines:
-    bad_node = line.split()[0]
-    if re.match('tiger-i[12][01239]g[0-9]{1,2}', bad_node):
-      nodes.remove(bad_node)
+    if "drain" in line or "down" in line:
+      bad_node = line.split()[0]
+      if re.match('tiger-i[12][01239]g[0-9]{1,2}', bad_node):
+        nodes.remove(bad_node)
 except:
   pass
+
+# store the running jobs with username, node and number of gpus
+cmd = "timeout 3 squeue -p gpu -t R -h -o '%.8u %.2t %.6C %4D %10b %R'"
+try:
+  output = subprocess.run(cmd, capture_output=True, shell=True, timeout=3)
+  squeue_lines = output.stdout.decode("utf-8").split('\n')
+except:
+  pass
+
+squeue_lines = list(filter(lambda x: len(x) > 0, squeue_lines))
+# make each item in squeue_lines have only one node in singles
+singles = []
+for line in squeue_lines:
+  user, state, cores, num_nodes, gres, many_hosts = line.split()
+  if num_nodes == "1":
+    singles.append(line)
+  else:
+    for host in extract_nodes(many_hosts.split(",t")):
+      singles.append(" ".join([user, state, cores, num_nodes, gres, host]))
 
 # total expected gpus (equal to number of rows)
 gpus_per_node = 4
