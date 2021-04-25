@@ -60,9 +60,11 @@ def squeue_gpus(node):
 
 def extract_username(myfield):
   if '(' in myfield:
-    return myfield[:myfield.index('(')]
+    name = myfield[:myfield.index('(')]
+    memory = myfield[myfield.index('(') + 1:-1]
+    return (name, memory)
   else:
-    return ''
+    return ('', "42G")
 
 def process_gpustat_output(myfile, max_stamp):
   """This function takes a text file of gpustat output and
@@ -80,8 +82,9 @@ def process_gpustat_output(myfile, max_stamp):
       fields = line.strip().split()
       gpu_index = int(fields[0].replace('[', '').replace(']', ''))
       percent_usage = int(fields[5])
-      username = '' if len(fields) < 14 else extract_username(fields[13])
-      usage_user[(node, gpu_index, timestamp)] = (percent_usage, username, True)
+      username, memory = ('', "42G") if len(fields) < 14 else extract_username(fields[13])
+      gpu_proc = False if memory == "0J" else True
+      usage_user[(node, gpu_index, timestamp)] = (percent_usage, username, gpu_proc)
       if timestamp == max_stamp:
         ggpus[gpu_index] = username
         if username != '': ggpus_count += 1
@@ -108,7 +111,7 @@ def process_gpustat_output(myfile, max_stamp):
         # overwrite files with usernames for new entries
         for i in changed_indices:
           name = ggpus[i]
-          lines[i + 1] = lines[i + 1].replace("16280 MB |", f"16280 MB | {name}(0M)") 
+          lines[i + 1] = lines[i + 1].replace("16280 MB |", f"16280 MB | {name}(0J)") 
         with open(myfile, 'w') as f:
           for line in lines:
             f.write(line)
