@@ -1,6 +1,6 @@
 #!/bin/bash
 cd /scratch/gpfs/jdh4/gpustat
-/usr/licensed/anaconda3/2019.10/bin/python tigergpu_usage.py
+/usr/licensed/anaconda3/2019.10/bin/python tigergpu_usage.py > /scratch/gpfs/jdh4/gpustat/jjjjjjj
 convert tigergpu_utilization.png -resize 850x -quality 50 tigergpu_utilization.png
 cp tigergpu_utilization.png /tigress/jdh4/public_html
 

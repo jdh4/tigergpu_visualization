@@ -9,6 +9,9 @@ from glob import glob
 from time import time
 import re
 
+#scontrol show hostname tiger-i14g[1-20]
+#nodeset -e tiger-i14g[1-20]
+
 #tiger-h26c1n7,tiger-i26c1n[18,22,24],tiger-i26c2n13
 #tiger-h20c1n6,tiger-h25c2n[9-10],tiger-h26c2n[6-7]
 #tiger-h25c2n[1,4,6,10-12,15]
@@ -58,6 +61,12 @@ def squeue_gpus(node):
 #[2] Tesla P100-PCIE-16GB | 41'C,  56 % |  1656 / 16280 MB | tgartner(255M)
 #[3] Tesla P100-PCIE-16GB | 41'C,  57 % |  1656 / 16280 MB | tgartner(255M)
 
+#tiger-i19g3  Sun May  9 11:48:29 2021
+#[0] NVIDIA Tesla P100-PCIE-16GB | 46'C, 100 % |   271 / 16280 MB | jongkees(269M)
+#[1] NVIDIA Tesla P100-PCIE-16GB | 49'C, 100 % |   271 / 16280 MB | jongkees(269M)
+#[2] NVIDIA Tesla P100-PCIE-16GB | 51'C, 100 % |   271 / 16280 MB | jongkees(269M)
+#[3] NVIDIA Tesla P100-PCIE-16GB | 50'C, 100 % |   271 / 16280 MB | jongkees(269M)
+
 def extract_username(myfield):
   if '(' in myfield:
     name = myfield[:myfield.index('(')]
@@ -79,6 +88,7 @@ def process_gpustat_output(myfile, max_stamp):
     ggpus_count = 0
     for line in lines[1:]:
       # assuming that we can split on white space to separate fields
+      line = line.replace("NVIDIA Tesla", "Tesla")
       fields = line.strip().split()
       gpu_index = int(fields[0].replace('[', '').replace(']', ''))
       percent_usage = int(fields[5])
@@ -124,6 +134,7 @@ def process_all_files():
   gpufiles = glob('/scratch/gpfs/jdh4/gpustat/dot_gpustat/*.gpustat')
   max_stamp = max(map(lambda x: int(x.split(".")[1]), gpufiles))
   for gpufile in gpufiles:
+    if debug: print(gpufile)
     process_gpustat_output(gpufile, max_stamp)
 
 def cell_color(username, usage, gpu_proc):
@@ -205,7 +216,7 @@ def create_image():
   fig.suptitle('TigerGPU Utilization (' + str(dt.strftime("%a %b %-d")) + ')', \
                y=0.997, ha='center', fontsize=18)
   fig.tight_layout(pad=0, w_pad=0, h_pad=0, rect=(0, 0, 1, 0.99))
-  plt.savefig('tigergpu_utilization.png')
+  if not debug: plt.savefig('tigergpu_utilization.png')
 
 def remove_old_files():
   """Remove gpustat files that are more than an hour old if there
@@ -240,17 +251,23 @@ cryoem = []
 squeue_lines = []
 
 # remove down and drained nodes while finding idle nodes
+#cmd = "timeout 3 sinfo -p gpu --Node -h | grep -E 'drain|down|boot|drng'"
 cmd = "timeout 3 sinfo -p gpu --Node -h | grep -E 'drain|down'"
 try:
   output = subprocess.run(cmd, capture_output=True, shell=True, timeout=3)
   lines = output.stdout.decode("utf-8").split('\n')
   for line in lines:
+    #if any([term in line for term in ["drain", "down", "boot", "drng"]]):
     if "drain" in line or "down" in line:
       bad_node = line.split()[0]
       if re.match('tiger-i[12][01239]g[0-9]{1,2}', bad_node):
         nodes.remove(bad_node)
 except:
   pass
+
+with open("/scratch/gpfs/jdh4/gpustat/nodes.log", "w") as f:
+  for node in nodes:
+    f.write(node + "\n")
 
 # store the running jobs with username, node and number of gpus
 cmd = "timeout 3 squeue -p gpu -t R -h -o '%.8u %.2t %.6C %4D %10b %R'"
@@ -271,6 +288,9 @@ for line in squeue_lines:
     for host in extract_nodes(many_hosts.split(",t")):
       singles.append(" ".join([user, state, cores, num_nodes, gres, host]))
 
+# debug flag
+debug = False
+
 # total expected gpus (equal to number of rows)
 gpus_per_node = 4
 num_gpus = gpus_per_node * len(nodes)
@@ -280,18 +300,22 @@ num_snapshots = 7
 
 usage_user = {}
 timestamp = str(int(time()))
-for node in nodes:
-  gpustat_file = node + "." + timestamp + ".gpustat"
-  cmd = "timeout 7 ssh -o ConnectTimeout=5 " + node + " \"gpustat > /scratch/gpfs/jdh4/gpustat/dot_gpustat/" + \
-         gpustat_file + "\" > /dev/null 2>&1"
-  try:
-     # run the command via ssh on the compute nodes
-     _ = subprocess.run(cmd, shell=True, timeout=5)
-  except:
-    # failure here will cleanly result in "NO INFO" downstream
-    pass
+if not debug:
+  for node in nodes:
+    gpustat_file = node + "." + timestamp + ".gpustat"
+    cmd = "timeout 5 ssh -o ConnectTimeout=4 " + node + " \"gpustat > /scratch/gpfs/jdh4/gpustat/dot_gpustat/" + \
+           gpustat_file + "\" > /dev/null 2>&1"
+    try:
+       # run the command via ssh on the compute nodes
+       _ = subprocess.run(cmd, shell=True, timeout=6)
+    except:
+      # failure here will cleanly result in "NO INFO" downstream
+      pass
 
 process_all_files()
-if usage_user: create_image()
-if usage_user: write_data()
-remove_old_files()
+if debug:
+ for u,v in zip(usage_user.keys(), usage_user.values()):
+    print(u,v)
+if usage_user and not debug: create_image()
+if usage_user and not debug: write_data()
+if not debug: remove_old_files()
