@@ -139,6 +139,21 @@ if df.empty:
   print('\nNo results found.\n')
   sys.exit(0)
 
+if thisuser != '-1':
+  # group by week
+  wk = df.copy()
+  wk = wk.drop(columns=['username'])
+  wk.columns = ['timestamp', 'util. (%)']
+  wk['timestamp'] = pd.to_datetime(wk.timestamp, unit='s')
+  wk = wk.groupby(pd.Grouper(key='timestamp', freq='W')).agg([np.size, np.mean]).reset_index()
+  wk.columns = ["Week", "GPU-Hours", "Util. (%)"]
+  wk['GPU-Hours'] = wk['GPU-Hours'] / (minutes_per_hour / sampling_freq)
+  wk['GPU-Hours'] = wk['GPU-Hours'].apply(lambda x: round(x) if pd.notna(x) else x)
+  wk['Util. (%)'] = wk['Util. (%)'].apply(lambda x: round(x) if pd.notna(x) else x)
+  wk = wk[["Week", "Util. (%)", "GPU-Hours"]]
+  print("\n", wk.fillna('N/A').to_string(index=False))
+  del wk
+
 start_stamp = end_stamp - seconds_in_window
 if (min_timestamp > start_stamp):
   min_date = datetime.fromtimestamp(min_timestamp).strftime('%m/%d/%Y')
