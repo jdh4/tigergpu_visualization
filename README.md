@@ -59,3 +59,11 @@ scp ${SBASE}/column.* tigercpu:${SBASE}
 ```
 
 `extract.py` creates the "column" files for the gpudash command and it appends the latest data to `utilization.json`. `checkgpu` looks at `utilization.json`.
+
+`extract.py` assumes a given set of hostnames. If a host is not found in the raw data from vigilant then the entry is written with the user as "OFFLINE". An idle node in utilization.json corresponds to:
+
+```
+{"timestamp": "1622344202", "host": "della-i14g15", "index": "1", "user": "OFFLINE", "util": "N/A", "jobid": "N/A"}  # no info from vigilant
+{"timestamp": "1622344202", "host": "della-i14g20", "index": "0", "user": "gdolsten", "util": "40", "jobid": "34792230"}  # active job
+{"timestamp": "1622344202", "host": "della-i14g20", "index": "1", "user": "root", "util": "0", "jobid": "0"}  # idle gpu
+```
