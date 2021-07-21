@@ -184,6 +184,8 @@ def create_image():
   # next line prevents IndexError in ax[idx, j] when script runs for first time
   if len(times) == 1: times = 2 * times
   fig, ax = plt.subplots(nrows=num_gpus, ncols=len(times), figsize=(10, 80))
+  # write to file
+  f = open("dashboard.csv", "w")
   for i, node in enumerate(nodes):
       for gpu_index in range(gpus_per_node):
         idx = gpus_per_node * i + gpu_index
@@ -201,6 +203,8 @@ def create_image():
           ax[idx, j].get_yaxis().set_ticks([])
           # set cell and labels text
           txtclr = 'w' if (usage < 25 or username == '') else 'k'
+          to_write = ','.join([datetime.fromtimestamp(t).strftime('%-I:%M %p'), node, str(gpu_index), username, str(usage)])
+          f.write(to_write + "\n")
           ax[idx, j].text(0.5, 0.5, celltext(node, j, username, usage), fontsize=10, color=txtclr, \
                           ha='center', va='center', transform=ax[idx, j].transAxes)
           # node and gpu index labels
@@ -212,6 +216,7 @@ def create_image():
           if (idx == 0):
             ax[idx, j].xaxis.set_label_position('top')
             ax[idx, j].set_xlabel(stamp, fontsize=12, rotation=0, ha='center', va='bottom')
+  f.close()
   # -d and -I remove zero padding (linux only)
   fig.suptitle('TigerGPU Utilization (' + str(dt.strftime("%a %b %-d")) + ')', \
                y=0.997, ha='center', fontsize=18)
