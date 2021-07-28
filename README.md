@@ -58,7 +58,7 @@ find ${DATA} -type f -mmin +70 -exec rm -f {} \;
 scp ${SBASE}/column.* tigercpu:${SBASE}
 ```
 
-`extract.py` creates the "column" files for the gpudash command and it appends the latest data to `utilization.json`. `checkgpu` looks at `utilization.json`.
+`extract.py` creates the "column" files for the gpudash command and it appends the latest data to `utilization.json`. `checkgpu` looks at `utilization.json`. `extract.py` lives in `https://github.com/jdh4/gpudash`
 
 `extract.py` assumes a given set of hostnames. If a host is not found in the raw data from vigilant then the entry is written with the user as "OFFLINE". Below are some samples from `utilization.json`:
 
