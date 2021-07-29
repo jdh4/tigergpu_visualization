@@ -28,6 +28,14 @@ Every 10 minutes on tigergpu a script is called:
 0,10,20,30,40,50 * * * * /scratch/gpfs/jdh4/gpustat/gpu.sh > /dev/null 2>&1
 ```
 
+The UIDs and NetIDs are also stored once per week:
+
+```
+0 6 * * 1 getent passwd | awk -F":" '{print $3","$1}' > /home/jdh4/bin/gpus/master.uid 2> /dev/null
+0 6 * * 1 ssh della 'getent passwd | awk -F":" '\''{print $3","$1}'\'' > /home/jdh4/bin/gpus/master.uid' > /dev/null 2>&1
+0 6 * * 1 ssh traverse 'getent passwd | awk -F":" '\''{print $3","$1}'\'' > /home/jdh4/bin/gpus/master.uid' > /dev/null 2>&1
+```
+
 `gpu.sh` is:
 
 ```
