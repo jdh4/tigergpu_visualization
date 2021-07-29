@@ -40,18 +40,18 @@ The UIDs and NetIDs are also stored once per week:
 
 ```
 #!/bin/bash
-ssh della-gpu "/home/jdh4/bin/a100/a100.sh"
-ssh traverse "/home/jdh4/bin/v100/v100.sh"
-/home/jdh4/bin/p100/p100.sh
+ssh della-gpu "/home/jdh4/bin/gpus/a100.sh"
+ssh traverse "/home/jdh4/bin/gpus/v100.sh"
+/home/jdh4/bin/gpus/p100.sh
 ```
 
 For example:
 
 ```
-$ cat /home/jdh4/bin/p100/p100.sh
+$ cat /home/jdh4/bin/gpus/p100.sh
 #!/bin/bash
 
-DATA="/home/jdh4/bin/p100/data"
+DATA="/home/jdh4/bin/gpus/data"
 SBASE="/scratch/.gpudash"
 printf -v SECS '%(%s)T' -1
 
@@ -61,7 +61,7 @@ curl -s 'http://vigilant.sn2907:8480/api/v1/query?query=nvidia_gpu_jobId'      >
 
 find ${DATA} -type f -mmin +70 -exec rm -f {} \;
 
-/usr/licensed/anaconda3/2020.11/bin/python /home/jdh4/bin/p100/extract.py
+/usr/licensed/anaconda3/2020.11/bin/python /home/jdh4/bin/gpus/extract.py
 
 scp ${SBASE}/column.* tigercpu:${SBASE}
 ```
