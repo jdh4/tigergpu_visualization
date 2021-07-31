@@ -1,4 +1,4 @@
-#!/usr/licensed/anaconda3/2020.2/bin/python -u
+#!/usr/licensed/anaconda3/2020.11/bin/python
 
 # post issues at https://github.com/jdh4/tigergpu_visualization
 # or write to halverson@princeton.edu
@@ -9,6 +9,8 @@ import os
 os.environ['OMP_NUM_THREADS'] = "1"
 import argparse
 import textwrap
+import json
+import subprocess
 import numpy as np
 import pandas as pd
 from time import time
@@ -33,11 +35,11 @@ psr = argparse.ArgumentParser(add_help=False,
     Show GPU usage by department over the last 36 hours:
        $ checkgpu -p -t 36
 
-    Show users with a GPU utilization of less than 15% over the last 12 hours:
+    Show users with a mean GPU utilization of less than 15% over the last 12 hours:
        $ checkgpu -c 15 -t 12
 
-    Create report only for the user dkozuch over last 30 minutes:
-       $ checkgpu -u dkozuch -t 0.5
+    Create report only for the user aturing over last 30 minutes:
+       $ checkgpu -u aturing -t 0.5
 
     Create report for all users from June 1, 2020 to June 15, 2020:
        $ checkgpu -e 06/15/2020 -d 15
@@ -74,9 +76,18 @@ psr.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
 args = psr.parse_args()
 
 host = gethostname().lower()
-if ('tiger' not in host and 'tigressdata' not in host):
-  print("Run script from tiger, tigercpu, tigergpu or tigressdata. Exiting ...")
+if ('della-gpu' not in host and 'tiger' not in host and 'traverse' not in host):
+  print("Run checkgpu from della-gpu, tigercpu, tigergpu or traverse. Exiting ...")
   sys.exit(0)
+
+if ('della-gpu' in host):
+  cluster = "Della GPU"
+elif ('tiger' in host):
+  cluster = "TigerGPU"
+elif ('traverse' in host):
+  cluster = "Traverse"
+else:
+  cluster = "UNKNOWN"
 
 # spacing in minutes between samples (set by how data is collected)
 sampling_freq = 10
@@ -100,17 +111,23 @@ if args.p or args.s:
   gpu_hours_cutoff = 0
   util_cutoff = 100
 
-###############################################################################
-datafile = '/scratch/gpfs/jdh4/gpustat/utilization.csv'
-if ('tigressdata' in host):
-  datafile = '/tiger' + datafile
+# read in data
+datafile = '/home/jdh4/bin/gpus/utilization.json'
 from pathlib import Path
 if not Path(datafile).is_file():
-  print('Data file not found: %s. Are you on the tiger cluster?' % datafile)
+  print('Data file not found: %s. Are you on the right cluster?' % datafile)
   sys.exit(0)
-#df = pd.read_hdf('utilization.h5', 'df')
-df = pd.read_csv(datafile, header=None, usecols=[0, 3, 4])
-df.columns = ['timestamp', 'username', 'usage']
+rows = []
+with open(datafile) as fp:
+  for line in fp.readlines():
+    x = json.loads(line)
+    rows.append(list(x.values()))
+df = pd.DataFrame(rows)
+del rows
+#{"timestamp": "1626876002", "host": "della-i14g16", "index": "0", "user": "bingjiay", "util": "82", "jobid": "35324200"}
+df.columns = ['timestamp', 'host', 'index', 'username', 'usage', 'jobid']
+df = df[['timestamp', 'username', 'usage']]
+df = df.astype({'timestamp':'int64'})
 
 end_stamp = int(time())
 if (args.end_date):
@@ -129,15 +146,18 @@ if thisuser != '-1':
   df = df[(df.timestamp >= end_stamp - seconds_in_window) &
           (df.timestamp < end_stamp) & (df.username == thisuser)]
 else:
-  idle = df[(df.timestamp >= end_stamp - seconds_in_window) & (df.timestamp <= end_stamp) &
-            pd.isna(df.username)]
-  df   = df[(df.timestamp >= end_stamp - seconds_in_window) & (df.timestamp <= end_stamp) &
-            pd.notna(df.username)]
-  denom = df.shape[0] + idle.shape[0]
-  pct_idle = 100.0 * idle.shape[0] / denom if denom != 0 else -1
+  df = df[(df.timestamp >= end_stamp - seconds_in_window) & (df.timestamp <= end_stamp)]
+  num_entries = df.shape[0]
+  idle = df[df.username == "root"].shape[0]
+  offline = df[df.username == "OFFLINE"].shape[0]
+  pct_idle = 100.0 * idle / num_entries if num_entries != 0 else -1
+  pct_offline = 100.0 * offline / num_entries if num_entries != 0 else -1
+  df = df[(df.username != "root") & (df.username != "OFFLINE")]
 if df.empty:
   print('\nNo results found.\n')
   sys.exit(0)
+
+df = df.astype({'usage':'int32'})
 
 if thisuser != '-1':
   # group by week
@@ -179,9 +199,7 @@ df['std'] = df['std'].apply(lambda x: x if pd.notna(x) else 0)
 df = df[(df['gpu-hours'] > gpu_hours_cutoff) & (df['mean'] <= util_cutoff)]
 
 # read cached user data
-userfile = '/scratch/gpfs/jdh4/gpustat/cached_users.csv'
-if ('tigressdata' in host):
-  userfile = '/tiger' + userfile
+userfile = '/home/jdh4/bin/gpus/cached_users.csv'
 ldap = pd.read_csv(userfile, header=0) if Path(userfile) else pd.DataFrame()
 # join the two dataframes
 df = pd.merge(df, ldap, how='left', left_on=['username'], right_on=['NETID'])
@@ -194,7 +212,23 @@ df['std'] = df['std'].apply(round).astype(str).apply(lambda x: x + '  ')
 df = df[['username', 'mean', 'std', 'gpu-hours', 'POSITION', 'DEPT', 'SPONSOR']]
 df.columns = ['USER', 'MEAN(%)', 'STD(%)', 'GPU-HOURS', 'POSITION', 'DEPT', 'SPONSOR']
 
+def sshare_dept(netid):
+  cmd = f"sshare -u {netid} | grep {netid}"
+  output = subprocess.run(cmd, capture_output=True, shell=True)
+  dept = output.stdout.decode("utf-8").split('\n')
+  if dept == ['']:
+    return np.nan
+  else:
+    return dept[0].split()[0].upper()
+
+# replace dept info using sshare
+df['DEPT'] = df.USER.apply(lambda netid: sshare_dept(netid))
+
 if args.p or args.s:
+  if args.p:
+    df['DEPT'] = df.DEPT.fillna('<UNKNOWN>')
+  if args.s:
+    df['SPONSOR'] = df.SPONSOR.fillna('<UNKNOWN>')
   field = 'DEPT' if args.p else 'SPONSOR'
   df['GPU-HOURS'] = df['GPU-HOURS'].astype(int)
   df = df[[field, 'GPU-HOURS']].groupby(by=field).agg(np.sum).reset_index()
@@ -213,13 +247,13 @@ def center(text, n):
 
 print('')
 if (args.p or args.s):
-  print(center('TigerGPU Usage', num_chars))
+  print(center(cluster + ' Usage', num_chars))
 else:
-  print(center('TigerGPU Utilization and Usage', num_chars))
+  print(center(cluster + ' Utilization and Usage', num_chars))
 print(center(range_begin + ' - ' + range_end, num_chars))
 if (not args.p and not args.s and thisuser == '-1'):
   print(center('Overall GPU utilization = %.1f%%' % overall_utilization, num_chars))
-  print(center('Active GPUs/Idle GPUs = %.1f%%/%.1f%%' % (100 - pct_idle, pct_idle), num_chars))
+  print(center('Active GPUs/Idle GPUs/No Info = %.1f%%/%.1f%%/%.1f%%' % (100 - pct_idle, pct_idle, pct_offline), num_chars))
 if df.empty:
   print('No results were found.')
 else:
