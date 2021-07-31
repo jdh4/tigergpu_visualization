@@ -8,7 +8,7 @@ The `checkgpu` command shows the mean GPU utilization and overall usage by user,
 
 ### How to use it?
 
-Add this line to your `~/.bashrc` file (Tiger and Tigressdata):
+Add this line to your `~/.bashrc` file (della-gpu, tiger and traverse):
 
 ```bash
 alias checkgpu='/home/jdh4/bin/checkgpu'
