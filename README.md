@@ -75,3 +75,11 @@ scp ${SBASE}/column.* tigercpu:${SBASE}
 {"timestamp": "1622344202", "host": "della-i14g20", "index": "0", "user": "gdolsten", "util": "40", "jobid": "34792230"}  # active job
 {"timestamp": "1622344202", "host": "della-i14g20", "index": "1", "user": "root", "util": "0", "jobid": "0"}  # idle gpu
 ```
+
+The code produces a line like:
+
+```
+Active GPUs/Idle GPUs/No Info = 60.8%/39.2%/1.2%
+```
+
+The code produces the line above assuming that all the GPUs are online. Tiger has 320 GPUs, Della-GPU 40 and Traverse 184. "No Info" correponds to down nodes and cases where vigilant fails to produce data.
