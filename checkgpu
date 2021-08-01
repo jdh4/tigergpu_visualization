@@ -14,7 +14,7 @@ import subprocess
 import numpy as np
 import pandas as pd
 from time import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from socket import gethostname
 
 psr = argparse.ArgumentParser(add_help=False,
@@ -82,12 +82,16 @@ if ('della-gpu' not in host and 'tiger' not in host and 'traverse' not in host):
 
 if ('della-gpu' in host):
   cluster = "Della GPU"
+  num_gpus = 40
 elif ('tiger' in host):
   cluster = "TigerGPU"
+  num_gpus = 320
 elif ('traverse' in host):
   cluster = "Traverse"
+  num_gpus = 184
 else:
   cluster = "UNKNOWN"
+  num_gpus = -1
 
 # spacing in minutes between samples (set by how data is collected)
 sampling_freq = 10
@@ -141,18 +145,20 @@ if (args.end_date):
 # filter old records and idle nodes
 seconds_in_window = hours * minutes_per_hour * seconds_per_minute
 min_timestamp = min(df.timestamp)
- 
+
+df = df[(df.timestamp >= end_stamp - seconds_in_window) & (df.timestamp <= end_stamp)]
+num_entries = df.shape[0]
+idle = df[df.username == "root"].shape[0]
+offline = df[df.username == "OFFLINE"].shape[0]
+num_active = num_entries - idle - offline
+pct_idle = 100.0 * idle / num_entries if num_entries != 0 else -1
+pct_offline = 100.0 * offline / num_entries if num_entries != 0 else -1
+
 if thisuser != '-1':
-  df = df[(df.timestamp >= end_stamp - seconds_in_window) &
-          (df.timestamp < end_stamp) & (df.username == thisuser)]
+  df = df[df.username == thisuser]
 else:
-  df = df[(df.timestamp >= end_stamp - seconds_in_window) & (df.timestamp <= end_stamp)]
-  num_entries = df.shape[0]
-  idle = df[df.username == "root"].shape[0]
-  offline = df[df.username == "OFFLINE"].shape[0]
-  pct_idle = 100.0 * idle / num_entries if num_entries != 0 else -1
-  pct_offline = 100.0 * offline / num_entries if num_entries != 0 else -1
   df = df[(df.username != "root") & (df.username != "OFFLINE")]
+
 if df.empty:
   print('\nNo results found.\n')
   sys.exit(0)
@@ -188,6 +194,7 @@ else:
 
 range_begin = datetime.fromtimestamp(start_stamp).strftime('%-I:%M %p %a (%-m/%-d)')
 range_end   = datetime.fromtimestamp(max(df.timestamp)).strftime('%-I:%M %p %a (%-m/%-d)')
+dt_hours = (datetime.fromtimestamp(max(df.timestamp)) - datetime.fromtimestamp(start_stamp))/timedelta(hours=1)
 df = df.drop(columns=['timestamp'])
 
 # compute utilization mean and std for each username then filter
@@ -197,6 +204,11 @@ df.columns = ['username', 'gpu-hours', 'mean', 'std']
 df['gpu-hours'] = df['gpu-hours'] / (minutes_per_hour / sampling_freq)
 df['std'] = df['std'].apply(lambda x: x if pd.notna(x) else 0)
 df = df[(df['gpu-hours'] > gpu_hours_cutoff) & (df['mean'] <= util_cutoff)]
+
+# check 1 ignores downtime and takes into account total number of gpus explicitly
+check1 = df['gpu-hours'].sum() / (num_gpus * ((100 - pct_idle - pct_offline) / 100.0) * dt_hours)
+# check 2 is just counting
+check2 = df['gpu-hours'].sum() / (num_active / (minutes_per_hour / sampling_freq))
 
 # read cached user data
 userfile = '/home/jdh4/bin/gpus/cached_users.csv'
@@ -253,7 +265,8 @@ else:
 print(center(range_begin + ' - ' + range_end, num_chars))
 if (not args.p and not args.s and thisuser == '-1'):
   print(center('Overall GPU utilization = %.1f%%' % overall_utilization, num_chars))
-  print(center('Active GPUs/Idle GPUs/No Info = %.1f%%/%.1f%%/%.1f%%' % (100 - pct_idle, pct_idle, pct_offline), num_chars))
+  print(center('Allocated GPUs/Idle GPUs/No Info = %.1f%%/%.1f%%/%.1f%%' % \
+        (100 - pct_idle - pct_offline, pct_idle, pct_offline), num_chars))
 if df.empty:
   print('No results were found.')
 else:
@@ -263,3 +276,6 @@ else:
   print('\n'.join(df_str[1:]))
   print(''.join(['='] * num_chars))
 print('')
+
+if (abs(check1 - 1.0) > 0.04 or abs(check2 - 1.0) > 0.04) and thisuser == '-1':
+  print(f"  *** check1={check1:.2f}, check2={check2:.2f} ***")
