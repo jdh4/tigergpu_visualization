@@ -36,6 +36,14 @@ The UIDs and NetIDs are also stored once per week:
 0 6 * * 1 ssh traverse 'getent passwd | awk -F":" '\''{print $3","$1}'\'' > /home/jdh4/bin/gpus/master.uid' > /dev/null 2>&1
 ```
 
+Cache info about the previous users:
+
+```
+0 7 * * 1 /home/jdh4/bin/gpus/make_cache.py > /dev/null 2>&1
+0 7 * * 1 ssh della    '/home/jdh4/bin/gpus/make_cache.py' > /dev/null 2>&1
+0 7 * * 1 ssh traverse '/home/jdh4/bin/gpus/make_cache.py' > /dev/null 2>&1
+```
+
 `gpu.sh` is:
 
 ```
