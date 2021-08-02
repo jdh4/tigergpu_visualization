@@ -277,5 +277,6 @@ else:
   print(''.join(['='] * num_chars))
 print('')
 
-if (abs(check1 - 1.0) > 0.04 or abs(check2 - 1.0) > 0.04) and thisuser == '-1':
+if (abs(check1 - 1.0) > 0.04 or abs(check2 - 1.0) > 0.04) and thisuser == '-1' and \
+   gpu_hours_cutoff == 0 and util_cutoff == 100:
   print(f"  *** check1={check1:.2f}, check2={check2:.2f} ***")
