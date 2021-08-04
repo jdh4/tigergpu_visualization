@@ -1,8 +1,4 @@
-# TigerGPU Visualization
-
-This repo contains a set of scripts for monitoring GPU utilization and usage on TigerGPU.
-
-## checkgpu
+# checkgpu
 
 The `checkgpu` command shows the mean GPU utilization and overall usage by user, department or sponsor. This command is available on Tiger and Tigressdata.
 
