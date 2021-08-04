@@ -1,6 +1,6 @@
 # checkgpu
 
-The `checkgpu` command shows the mean GPU utilization and overall usage by user, department or sponsor. This command is available on Tiger and Tigressdata.
+The `checkgpu` command shows the mean GPU utilization and overall usage by user, department or sponsor. This command is available on della-gpu, tiger and traverse.
 
 ### How to use it?
 
