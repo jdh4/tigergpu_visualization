@@ -159,6 +159,13 @@ if thisuser != '-1':
 else:
   df = df[(df.username != "root") & (df.username != "OFFLINE")]
 
+# remove cryoem
+if ('tiger' in host):
+  cryoem = ["tiger-h" + str(i) + 'g' + str(j) for i in [19, 20, 21, 23, 24, 25, 26] for j in [1, 2]]
+  cryoem.append("tiger-i26g1")
+  cryoem.append("tiger-i26g2")
+  df = df[~df.host.isin(cryoem)]
+  
 if df.empty:
   print('\nNo results found.\n')
   sys.exit(0)
