@@ -87,3 +87,12 @@ Active GPUs/Idle GPUs/No Info = 60.8%/38.0%/1.2%
 ```
 
 The code produces the line above assuming that all the GPUs are online. Tiger has 320 GPUs, Della-GPU 40 and Traverse 184. "No Info" correponds to down nodes and cases where vigilant fails to produce data.
+
+
+### Notes
+
+For `jdh4`, `checkgpu` is not developed in `/tigress/jdh4/python-devel/`. To get checkgpu on della, tiger and traverse:
+
+```
+wget https://raw.githubusercontent.com/jdh4/tigergpu_visualization/master/checkgpu
+```
