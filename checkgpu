@@ -272,7 +272,7 @@ else:
   print(center(cluster + ' Utilization and Usage', num_chars))
 print(center(range_begin + ' - ' + range_end, num_chars))
 if (not args.p and not args.s and thisuser == '-1'):
-  print(center('Overall GPU utilization = %.1f%%' % overall_utilization, num_chars))
+  print(center('Mean GPU utilization of allocated GPUs = %.1f%%' % overall_utilization, num_chars))
   print(center('Allocated GPUs/Idle GPUs/No Info = %.1f%%/%.1f%%/%.1f%%' % \
         (100 - pct_idle - pct_offline, pct_idle, pct_offline), num_chars))
 if df.empty:
