@@ -62,6 +62,8 @@ psr.add_argument('-g', type=float, action='store', dest='gpu_hours_cutoff',
 psr.add_argument('-e', type=str, action='store', dest='end_date',
     default=None, help='Create report ending on this date and going back in time \
     from this date by -t <hours> or -d <days> (format MM/DD/YYYY)')
+psr.add_argument('-l', action='store_true', 
+    help='Write the table to latex file')
 ext = psr.add_mutually_exclusive_group(required=False)
 ext.add_argument('-u', type=str, action='store', dest='netid',
     default='-1', help='Create report for a single user')
@@ -256,6 +258,12 @@ if args.p or args.s:
   df['PROPORTION(%)'] = df['PROPORTION(%)'].apply(lambda x: str(round(x)) + '  ')
   df.columns = [field, 'GPU-HOURS', 'PROPORTION(%)']
   df = df.sort_values(by='GPU-HOURS', ascending=False)
+
+# write latex
+if args.l:
+  df = df.drop(columns=["MEAN(%)", "STD(%)"]).reset_index(drop=True)
+  df.index += 1
+  df.to_latex('table.tex', longtable=True)
 
 # print results
 df_str = df.fillna('').to_string(index=False).split('\n')
