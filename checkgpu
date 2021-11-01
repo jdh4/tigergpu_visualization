@@ -261,7 +261,7 @@ if args.p or args.s:
 
 # write latex
 if args.l:
-  df = df.drop(columns=["MEAN(%)", "STD(%)"]).reset_index(drop=True)
+  df = df.drop(columns=["STD(%)"]).reset_index(drop=True)
   df.index += 1
   df.to_latex('table.tex', longtable=True)
 
