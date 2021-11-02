@@ -246,6 +246,9 @@ def sshare_dept(netid):
 # replace dept info using sshare
 df['DEPT'] = df.USER.apply(lambda netid: sshare_dept(netid))
 
+def multi_depts(x):
+  return ','.join(set(x))
+
 if args.p or args.s:
   if args.p:
     df['DEPT'] = df.DEPT.fillna('<UNKNOWN>')
@@ -253,10 +256,10 @@ if args.p or args.s:
     df['SPONSOR'] = df.SPONSOR.fillna('<UNKNOWN>')
   field = 'DEPT' if args.p else 'SPONSOR'
   df['GPU-HOURS'] = df['GPU-HOURS'].astype(int)
-  df = df[[field, 'GPU-HOURS']].groupby(by=field).agg(np.sum).reset_index()
+  df = df[[field, 'DEPT', 'GPU-HOURS']].groupby(by=field).agg({"DEPT":multi_depts, "GPU-HOURS":np.sum}).reset_index()
   df['PROPORTION(%)'] = 100 * df['GPU-HOURS'] / df['GPU-HOURS'].sum()
   df['PROPORTION(%)'] = df['PROPORTION(%)'].apply(lambda x: str(round(x)) + '  ')
-  df.columns = [field, 'GPU-HOURS', 'PROPORTION(%)']
+  df.columns = [field, 'DEPT', 'GPU-HOURS', 'PROPORTION(%)']
   df = df.sort_values(by='GPU-HOURS', ascending=False)
 
 # write latex
