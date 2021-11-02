@@ -252,22 +252,32 @@ def multi_depts(x):
 if args.p or args.s:
   if args.p:
     df['DEPT'] = df.DEPT.fillna('<UNKNOWN>')
-  if args.s:
+    field = 'DEPT'
+    df['GPU-HOURS'] = df['GPU-HOURS'].astype(int)
+    df = df[[field, 'GPU-HOURS']].groupby(by=field).agg(np.sum).reset_index()
+    df['PROPORTION(%)'] = 100 * df['GPU-HOURS'] / df['GPU-HOURS'].sum()
+    df['PROPORTION(%)'] = df['PROPORTION(%)'].apply(lambda x: str(round(x)) + '  ')
+    df.columns = [field, 'GPU-HOURS', 'PROPORTION(%)']
+    df = df.sort_values(by='GPU-HOURS', ascending=False)
+  elif args.s:
     df['SPONSOR'] = df.SPONSOR.fillna('<UNKNOWN>')
-  field = 'DEPT' if args.p else 'SPONSOR'
-  df['GPU-HOURS'] = df['GPU-HOURS'].astype(int)
-  df = df[[field, 'DEPT', 'GPU-HOURS']].groupby(by=field).agg({"DEPT":multi_depts, "GPU-HOURS":np.sum}).reset_index()
-  df['PROPORTION(%)'] = 100 * df['GPU-HOURS'] / df['GPU-HOURS'].sum()
-  df['PROPORTION(%)'] = df['PROPORTION(%)'].apply(lambda x: str(round(x)) + '  ')
-  df.columns = [field, 'DEPT', 'GPU-HOURS', 'PROPORTION(%)']
-  df = df.sort_values(by='GPU-HOURS', ascending=False)
+    df['DEPT'] = df.DEPT.fillna('<UNKNOWN>')
+    field = 'SPONSOR'
+    df['GPU-HOURS'] = df['GPU-HOURS'].astype(int)
+    df = df[[field, 'DEPT', 'GPU-HOURS']].groupby(by=field).agg({"DEPT":multi_depts, "GPU-HOURS":np.sum}).reset_index()
+    df['PROPORTION(%)'] = 100 * df['GPU-HOURS'] / df['GPU-HOURS'].sum()
+    df['PROPORTION(%)'] = df['PROPORTION(%)'].apply(lambda x: str(round(x)) + '  ')
+    df.columns = [field, 'DEPT', 'GPU-HOURS', 'PROPORTION(%)']
+    df = df.sort_values(by='GPU-HOURS', ascending=False)
 
 # write latex
 if args.l:
-  if "STD(%)" in df.columns: df = df.drop(columns=["STD(%)"])
-  df = df.reset_index(drop=True)
-  df.index += 1
-  df.fillna('').to_latex('table.tex', longtable=True)
+  ef = df.copy()
+  if "STD(%)" in ef.columns: ef = ef.drop(columns=["STD(%)"])
+  ef = ef.reset_index(drop=True)
+  ef.index += 1
+  ef.fillna('').to_latex('table.tex', longtable=True)
+  del ef
 
 # print results
 df_str = df.fillna('').to_string(index=False).split('\n')
