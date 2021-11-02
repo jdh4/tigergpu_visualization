@@ -267,7 +267,7 @@ if args.l:
   if "STD(%)" in df.columns: df = df.drop(columns=["STD(%)"])
   df = df.reset_index(drop=True)
   df.index += 1
-  df.to_latex('table.tex', longtable=True)
+  df.fillna('').to_latex('table.tex', longtable=True)
 
 # print results
 df_str = df.fillna('').to_string(index=False).split('\n')
