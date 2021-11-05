@@ -212,6 +212,8 @@ overall_utilization = df.usage.mean()
 df = df.groupby(by='username').agg([np.size, np.mean, np.std]).reset_index()
 df.columns = ['username', 'gpu-hours', 'mean', 'std']
 df['gpu-hours'] = df['gpu-hours'] / (minutes_per_hour / sampling_freq)
+df['PROPORTION(%)'] = 100 * df['gpu-hours'] / df['gpu-hours'].sum()
+df['PROPORTION(%)'] = df['PROPORTION(%)'].apply(lambda x: str(round(x)) + '  ')
 df['std'] = df['std'].apply(lambda x: x if pd.notna(x) else 0)
 df = df[(df['gpu-hours'] > gpu_hours_cutoff) & (df['mean'] <= util_cutoff)]
 
@@ -231,8 +233,8 @@ df = df.sort_values(by=sortby, ascending=isascend)
 df['gpu-hours'] = df['gpu-hours'].apply(round).astype(str).apply(lambda x: x + '  ')
 df['mean'] = df['mean'].apply(round).astype(str).apply(lambda x: x + '  ')
 df['std'] = df['std'].apply(round).astype(str).apply(lambda x: x + '  ')
-df = df[['username', 'mean', 'std', 'gpu-hours', 'POSITION', 'DEPT', 'SPONSOR']]
-df.columns = ['USER', 'MEAN(%)', 'STD(%)', 'GPU-HOURS', 'POSITION', 'DEPT', 'SPONSOR']
+df = df[['username', 'mean', 'std', 'gpu-hours', 'PROPORTION(%)', 'POSITION', 'DEPT', 'SPONSOR']]
+df.columns = ['USER', 'MEAN(%)', 'STD(%)', 'GPU-HOURS', 'PROPORTION(%)', 'POSITION', 'DEPT', 'SPONSOR']
 
 def sshare_dept(netid):
   cmd = f"sshare -u {netid} | grep {netid}"
@@ -273,7 +275,6 @@ if args.p or args.s:
 # write latex
 if args.l:
   ef = df.copy()
-  if "STD(%)" in ef.columns: ef = ef.drop(columns=["STD(%)"])
   ef = ef.reset_index(drop=True)
   ef.index += 1
   ef.fillna('').to_latex('table.tex', longtable=True)
