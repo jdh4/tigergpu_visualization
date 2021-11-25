@@ -62,8 +62,15 @@ psr.add_argument('-g', type=float, action='store', dest='gpu_hours_cutoff',
 psr.add_argument('-e', type=str, action='store', dest='end_date',
     default=None, help='Create report ending on this date and going back in time \
     from this date by -t <hours> or -d <days> (format MM/DD/YYYY)')
+
+# may conflict with -d
+psr.add_argument('-b', type=str, action='store', dest='begin_date',
+    default=None, help='Create report beginning on this date (format MM/DD/YYYY)')
+
 psr.add_argument('-l', action='store_true', 
     help='Write the table to latex file')
+psr.add_argument('-i', action='store_false',
+    help='Ignore header (i.e., only show data)')
 ext = psr.add_mutually_exclusive_group(required=False)
 ext.add_argument('-u', type=str, action='store', dest='netid',
     default='-1', help='Create report for a single user')
@@ -152,18 +159,34 @@ if (args.end_date):
     print('Make sure date has format MM/DD/YYYY. Exiting ...')
     sys.exit(1)
 
+if (args.begin_date):
+  try:
+    twelve_hours = 12 * minutes_per_hour * seconds_per_minute
+    begin_stamp = datetime.strptime(args.begin_date, '%m/%d/%Y').timestamp() + twelve_hours
+  except:
+    print('Make sure date has format MM/DD/YYYY. Exiting ...')
+    sys.exit(1)
+
 # filter old records and idle nodes
 seconds_in_window = hours * minutes_per_hour * seconds_per_minute
 min_timestamp = min(df.timestamp)
 
-df = df[(df.timestamp >= end_stamp - seconds_in_window) & (df.timestamp <= end_stamp)]
+if (args.begin_date):
+  df = df[(df.timestamp >= begin_stamp) & (df.timestamp <= end_stamp)]
+else:
+  df = df[(df.timestamp >= end_stamp - seconds_in_window) & (df.timestamp <= end_stamp)]
+
 num_entries = df.shape[0]
 idle = df[df.username == "root"].shape[0]
 offline = df[df.username == "OFFLINE"].shape[0]
 num_active = num_entries - idle - offline
 pct_idle = 100.0 * idle / num_entries if num_entries != 0 else -1
 pct_offline = 100.0 * offline / num_entries if num_entries != 0 else -1
-df = df[(df.username != "root") & (df.username != "OFFLINE")]
+
+if thisuser != '-1':
+  df = df[df.username == thisuser]
+else:
+  df = df[(df.username != "root") & (df.username != "OFFLINE")]
   
 if df.empty:
   print('\nNo results found.\n')
@@ -173,20 +196,24 @@ df = df.astype({'usage':'int32'})
 
 if thisuser != '-1':
   # group by week
-  wk = df[df.username == thisuser].copy()
+  wk = df.copy()
   wk = wk.drop(columns=['username'])
   wk.columns = ['timestamp', 'util. (%)']
   wk['timestamp'] = pd.to_datetime(wk.timestamp, unit='s')
   wk = wk.groupby(pd.Grouper(key='timestamp', freq='W')).agg([np.size, np.mean]).reset_index()
-  wk.columns = ["Week", "GPU-Hours", "Util.(%)"]
+  wk.columns = ["Week", "GPU-Hours", "Util. (%)"]
   wk['GPU-Hours'] = wk['GPU-Hours'] / (minutes_per_hour / sampling_freq)
   wk['GPU-Hours'] = wk['GPU-Hours'].apply(lambda x: round(x) if pd.notna(x) else x)
-  wk['Util.(%)'] = wk['Util.(%)'].apply(lambda x: round(x) if pd.notna(x) else x)
-  wk = wk[["Week", "Util.(%)", "GPU-Hours"]]
+  wk['Util. (%)'] = wk['Util. (%)'].apply(lambda x: round(x) if pd.notna(x) else x)
+  wk = wk[["Week", "Util. (%)", "GPU-Hours"]]
   print("\n", wk.fillna('N/A').to_string(index=False))
   del wk
 
-start_stamp = end_stamp - seconds_in_window
+if (args.begin_date):
+  twelve_hours = 12 * minutes_per_hour * seconds_per_minute
+  start_stamp = datetime.strptime(args.begin_date, '%m/%d/%Y').timestamp() + twelve_hours
+else:
+  start_stamp = end_stamp - seconds_in_window
 if (min_timestamp > start_stamp):
   min_date = datetime.fromtimestamp(min_timestamp).strftime('%m/%d/%Y')
   print(("\n*** WARNING: Earliest data was recorded on {0}. Overriding start\n"
@@ -208,10 +235,7 @@ overall_utilization = df.usage.mean()
 df = df.groupby(by='username').agg([np.size, np.mean, np.std]).reset_index()
 df.columns = ['username', 'gpu-hours', 'mean', 'std']
 df['gpu-hours'] = df['gpu-hours'] / (minutes_per_hour / sampling_freq)
-total_gpu_hours = df["gpu-hours"].sum()
-if thisuser != '-1':
-  df = df[df.username == thisuser]
-df['PROPORTION(%)'] = 100 * df['gpu-hours'] / total_gpu_hours
+df['PROPORTION(%)'] = 100 * df['gpu-hours'] / df['gpu-hours'].sum()
 df['PROPORTION(%)'] = df['PROPORTION(%)'].apply(lambda x: str(round(x)) + '  ')
 df['std'] = df['std'].apply(lambda x: x if pd.notna(x) else 0)
 df = df[(df['gpu-hours'] > gpu_hours_cutoff) & (df['mean'] <= util_cutoff)]
@@ -287,26 +311,31 @@ def center(text, n):
   spaces = ''.join([' '] * max(0, int(0.5 * (n - len(text)))))
   return spaces + text
 
-print('')
-if (args.p or args.s):
-  print(center(cluster + ' Usage', num_chars))
-else:
-  print(center(cluster + ' Utilization and Usage', num_chars))
-print(center(range_begin + ' - ' + range_end, num_chars))
-if (not args.p and not args.s and thisuser == '-1'):
-  print(center('Allocated GPUs/Idle GPUs/No Info = %.1f%%/%.1f%%/%.1f%%' % \
-        (100 - pct_idle - pct_offline, pct_idle, pct_offline), num_chars))
-  print(center('Mean GPU utilization of allocated GPUs = %.1f%%' % overall_utilization, num_chars))
+if args.i:
+    print('')
+    if (args.p or args.s):
+      print(center(cluster + ' Usage', num_chars))
+    else:
+      print(center(cluster + ' Utilization and Usage', num_chars))
+    print(center(range_begin + ' - ' + range_end, num_chars))
+    if (not args.p and not args.s and thisuser == '-1'):
+      print(center('Allocated GPUs/Idle GPUs/No Info = %.1f%%/%.1f%%/%.1f%%' % \
+            (100 - pct_idle - pct_offline, pct_idle, pct_offline), num_chars))
+      print(center('Mean GPU utilization of allocated GPUs = %.1f%%' % overall_utilization, num_chars))
 if df.empty:
   print('No results were found.')
 else:
-  print('')
-  print(df_str[0])
-  print(''.join(['='] * num_chars))
-  print('\n'.join(df_str[1:]))
-  print(''.join(['='] * num_chars))
-print('')
+  if args.i: print('')
+  if args.i: print(df_str[0])
+  if args.i: print(''.join(['='] * num_chars))
+  if args.i:
+    print('\n'.join(df_str[1:]))
+  else:
+    df_str_sep = ['|'.join(line.split()) for line in df.fillna('--').to_string(index=False, header=True).split('\n')]
+    print('\n'.join(df_str_sep))
+  if args.i: print(''.join(['='] * num_chars))
+if args.i: print('')
 
 if (abs(check1 - 1.0) > 0.04 or abs(check2 - 1.0) > 0.04) and thisuser == '-1' and \
    gpu_hours_cutoff == 0 and util_cutoff == 100:
-  print(f"  *** check1={check1:.2f}, check2={check2:.2f} ***")
+  if args.i: print(f"  *** check1={check1:.2f}, check2={check2:.2f} ***")
