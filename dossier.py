@@ -130,6 +130,111 @@ def format_sponsor(s):
   else:
     return s
 
+def get_position(netid):
+  """Note that each field can appear multiple times."""
+  cmd = f"ldapsearch -x uid={netid}"
+  output = subprocess.run(cmd, capture_output=True, shell=True, timeout=2)
+  lines = output.stdout.decode("utf-8").split('\n')
+  if lines != [] and lines[-1] == "": lines = lines[:-1]
+
+  faculty = False
+  emeritus = False
+  staff = False
+  postdoc_in_title = False
+  graduate = False
+  Gx = ""
+  undergraduate = False
+  Ux = ""
+  rcu = False
+  dcu = False
+  ru = False
+  xdcu = False
+  sps = False
+  xstf = False
+  cas = False
+  intern_or_assist = False
+  alumg = False
+  visitor = False
+  for line in lines:
+    if line.startswith("#"): continue
+    line = line.lower()
+    if "pustatus: fac" in line or "puaffiliation: fac" in line or ("professor" in line and "title" in line): faculty = True
+    if "pustatus: eme" in line: emeritus = True
+    if "pustatus: stf" in line or "puaffiliation: stf" in line: staff = True
+    if "postdoc" in line and "title" in line: postdoc_in_title = True
+    if "visit" in line and "title" in line: visitor = True
+    if "pustatus: graduate" in line: graduate = True
+    if "puacademiclevel" in line and any([f" g{yr}" in line for yr in range(1, 10)]): Gx = line.split()[-1]
+    if "pustatus: undergraduate" in line: undergraduate = True
+    if "undergraduate class of" in line: Ux = line.split()[-1]  # or use puclassyear
+    if "pustatus: rcu" in line or "puaffiliation: rcu" in line: rcu = True
+    if "pustatus: dcu" in line or "puaffiliation: dcu" in line: dcu = True
+    if "pustatus: researchuser" in line or "puaffiliation: researchuser" in line: ru = True
+    if "pustatus: exceptiondcu" in line: xdcu = True
+    if "pustatus: sps" in line: sps = True
+    if "pustatus: xstf" in line: xstf = True
+    if "pustatus: xmiscaffil" in line: return "XMiscAffil"
+    if "pustatus: alumg" in line: alumg = True
+    if "pustatus: cas" in line: cas = True
+    if ("intern" in line or "assist" in line) and "title" in line: intern_or_assist = True
+
+  other = [rcu, dcu, ru, xdcu, sps, xstf, cas]
+  #TDO: fv4 and maybe with affiliate
+  if faculty:
+    return "Faculty"
+  elif emeritus:
+    return "Faculty (emeritus)"
+  elif staff and not postdoc_in_title and not visitor:
+    return "Staff"
+  elif staff and not postdoc_in_title and visitor:
+    return "Staff (visitor)"
+  elif staff and postdoc_in_title:
+    return "Postdoc"
+  elif graduate and Gx and not alumg:
+    return Gx.upper()
+  elif graduate and Gx and alumg:
+    return f"Alumni ({Gx.upper()})"
+  elif Gx and alumg and not any(other):
+    return f"Alumni ({Gx.upper()})"
+  elif Gx and not alumg and not any(other):
+    return f"{Gx.upper()}"
+  elif graduate:
+    return "Graduate"
+  elif undergraduate and Ux and not alumg:
+    return f"U{Ux}"
+  elif undergraduate and Ux and alumg:
+    return f"Alumni (U{Ux})"
+  elif undergraduate or Ux:
+    return f"U{Ux}"
+  elif rcu and Gx:
+    return f"RCU (formerly {Gx.upper()})"
+  elif rcu and not Gx:
+    return f"RCU"
+  elif dcu and Gx:
+    return f"DCU (formerly {Gx.upper()})"
+  elif dcu and not Gx:
+    return f"DCU"
+  elif ru:
+    return "RU"
+  elif xdcu:
+    return "XDCU"
+  elif sps:
+    return "SPS"
+  elif xstf:
+    return "XStaff"
+  elif cas and Gx:  # not using intern_or_assist
+    return f"Casual (formerly {Gx.upper()})"
+  elif cas:
+    return "Casual"
+  elif ru:
+    return "RU"
+  elif sps:
+    return "SPS"
+  elif xdcu:
+    return "XDCU"
+  else:
+    return "UNKNOWN"
+
 def infer_position(edu, aca, title, stat, dept):
   # infer the job position of the user
   if stat == 'undergraduate' or stat == 'xundergraduate' or stat == 'ugdcu':
@@ -242,7 +347,8 @@ def ldap_plus(netids):
 
       office = get_office_from_finger(netid_true)
       sponsor = format_sponsor(get_sponsor_from_getent(netid_true))
-      position = infer_position(edu, aca, title, stat, dept)
+      #position = infer_position(edu, aca, title, stat, dept)
+      position = get_position(netid_true)
       dept_code = get_dept_code(dept, stat, edu, office)
       #addr = addr.replace('$', ', ')
 
