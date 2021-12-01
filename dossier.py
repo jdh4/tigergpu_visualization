@@ -133,7 +133,10 @@ def format_sponsor(s):
 def get_position(netid):
   """Note that each field can appear multiple times."""
   cmd = f"ldapsearch -x uid={netid}"
-  output = subprocess.run(cmd, capture_output=True, shell=True, timeout=2)
+  try:
+    output = subprocess.run(cmd, capture_output=True, shell=True, timeout=5)
+  except:
+    return ""
   lines = output.stdout.decode("utf-8").split('\n')
   if lines != [] and lines[-1] == "": lines = lines[:-1]
 
