@@ -265,7 +265,7 @@ def infer_position(edu, aca, title, stat, dept):
   else:
     return ''
 
-def get_dept_code(dept, stat, edu, office):
+def get_dept_code(dept, stat, edu, office, resdept):
   # replace the department name with an abbreviation
   trans = {'CHEMISTRY':'CHEM', 'PSYCHOLOGY':'PSYCH','GENOMICS':'LSI'}
   if ((dept.startswith('Undergraduate Class of ') or dept == 'Unspecified Department' \
@@ -273,7 +273,10 @@ def get_dept_code(dept, stat, edu, office):
     odept = office.split(',')[0].upper()
     return odept if odept not in trans else trans[odept]
   elif (dept in depts):
-    return depts[dept]
+    if dept == "Unspecified Department" and resdept in depts:
+      return depts[resdept]
+    else:
+      return depts[dept]
   else:
     return ''
 
@@ -340,6 +343,7 @@ def ldap_plus(netids):
       netid_true = record['uid']
       name = record['cn']  # sponsor_report uses cn to get name
       dept = record['ou']
+      resdept = record['puresidentdepartment']
       title = record['title']
       stat = record['pustatus']
       aca = record['puacademiclevel']
@@ -352,7 +356,7 @@ def ldap_plus(netids):
       sponsor = format_sponsor(get_sponsor_from_getent(netid_true))
       #position = infer_position(edu, aca, title, stat, dept)
       position = get_position(netid_true)
-      dept_code = get_dept_code(dept, stat, edu, office)
+      dept_code = get_dept_code(dept, stat, edu, office, resdept)
       #addr = addr.replace('$', ', ')
 
       people.append([name, dept_code, stat, position, title, aca, office, sponsor, \
