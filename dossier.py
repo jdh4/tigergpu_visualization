@@ -131,7 +131,8 @@ def format_sponsor(s):
     return s
 
 def get_position(netid):
-  """Note that each field can appear multiple times."""
+  """Note that each field can appear multiple times. The netid is assumed to be a 
+     true netid and not an alias. Otherwise call ldap_plus to get position."""
   cmd = f"ldapsearch -x uid={netid}"
   try:
     output = subprocess.run(cmd, capture_output=True, shell=True, timeout=5)
