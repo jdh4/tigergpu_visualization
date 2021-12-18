@@ -119,7 +119,7 @@ def format_sponsor(s):
   names = list(filter(lambda x: x not in ['Jr.', 'II', 'III', 'IV'], s.split()))
   if len(names) == 2:
     if len(names[1]) > 1: return names[1]
-    else: return s
+    else: return " ".join(names)
   elif (len(names) > 2):
     idx = 0
     while (names[idx].endswith('.') and (idx < len(names) - 1)):
@@ -129,7 +129,7 @@ def format_sponsor(s):
     if '1' in e: return ' '.join(names[e.index('1') + 1:])
     else: return names[-1]
   else:
-    return s
+    return " ".join(names)
 
 def get_position(netid):
   """Note that each field can appear multiple times. The netid is assumed to be a 
