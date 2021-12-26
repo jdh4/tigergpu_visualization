@@ -333,6 +333,8 @@ else:
     # header not printed
     df.POSITION = df.POSITION.fillna("--").astype('string')
     df.POSITION = df.POSITION.apply(lambda x: x.replace(" ", "_"))
+    df.SPONSOR = df.SPONSOR.fillna("--").astype('string')
+    df.SPONSOR = df.SPONSOR.apply(lambda x: x.replace(" ", "_"))
     df_str_sep = ['|'.join(line.split()) for line in df.fillna('--').to_string(index=False, header=True).split('\n')]
     print('\n'.join(df_str_sep))
   if args.i: print(''.join(['='] * num_chars))
