@@ -322,7 +322,7 @@ def ldap_plus(netids):
     if (not uid_success):
       # netid not found so assume it was an alias and search by mail
       # this good idea comes from R. Knight
-      # could also look for multiple occurances of campusid
+      # could also look for multiple occurrences of campusid
       try:
         output = subprocess.run("ldapsearch -x mail=" + netid + "@princeton.edu",
                                 capture_output=True, shell=True, timeout=2)
