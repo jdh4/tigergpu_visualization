@@ -236,10 +236,19 @@ def get_position(netid):
     return "RU"
   elif sps:
     return "SPS"
-  elif xdcu:
-    return "XDCU"
   else:
     return "UNKNOWN"
+
+def clean_position(position, level=0):
+  position = position.split(" (")[0]
+  if position in ("RCU", "DCU", "RU", "XDCU"):
+    position = "RCU/DCU/RU"
+  if level==2:
+    if position.startswith("U20"):
+      position = "Undergrad"
+    if position in [f"G{n}" for n in range(1, 10)]:
+      position = "Graduate"
+  return position
 
 def infer_position(edu, aca, title, stat, dept):
   # infer the job position of the user
@@ -299,7 +308,7 @@ def get_sponsor_from_getent(netid_true):
   sponsor = line[0].split(':')[4].split(',')[-1] if line != [''] else 'NULL'
   return sponsor
 
-def ldap_plus(netids):
+def ldap_plus(netids, level=0):
   # return a list of lists
   columns = ['NAME', 'DEPT', 'STATUS', 'POSITION', 'TITLE', 'ACAD', 'OFFICE', \
              'SPONSOR', 'NETID', 'NETID_TRUE']
@@ -360,6 +369,7 @@ def ldap_plus(netids):
       sponsor = format_sponsor(get_sponsor_from_getent(netid_true))
       #position = infer_position(edu, aca, title, stat, dept)
       position = get_position(netid_true)
+      if level > 0: position = clean_position(position, level)
       dept_code = get_dept_code(dept, stat, edu, office, resdept)
       #addr = addr.replace('$', ', ')
 
