@@ -1,10 +1,10 @@
 # checkgpu
 
-The `checkgpu` command shows the mean GPU utilization and overall usage by user, department or sponsor. This command is available on della-gpu, tiger and traverse.
+The `checkgpu` command shows the mean GPU utilization and overall usage by user, department or sponsor. This command is available on della and traverse.
 
 ### How to use it?
 
-Add this line to your `~/.bashrc` file (della, tiger and traverse):
+Add this line to your `~/.bashrc` file (della and traverse):
 
 ```bash
 alias checkgpu='/home/jdh4/bin/checkgpu'
@@ -51,22 +51,21 @@ timeout 30 ssh traverse "/home/jdh4/bin/gpus/v100.sh"
 For example:
 
 ```
-$ cat /home/jdh4/bin/gpus/p100.sh
+$ cat /home/jdh4/bin/gpus/a100.sh
 #!/bin/bash
 
 DATA="/home/jdh4/bin/gpus/data"
-SBASE="/scratch/.gpudash"
 printf -v SECS '%(%s)T' -1
 
-curl -s 'http://vigilant.sn2907:8480/api/v1/query?query=nvidia_gpu_duty_cycle' > ${DATA}/util.${SECS}
-curl -s 'http://vigilant.sn2907:8480/api/v1/query?query=nvidia_gpu_jobUid'     > ${DATA}/uid.${SECS}
-curl -s 'http://vigilant.sn2907:8480/api/v1/query?query=nvidia_gpu_jobId'      > ${DATA}/jobid.${SECS}
+curl -s 'http://vigilant.sn17:8480/api/v1/query?query=nvidia_gpu_duty_cycle' > ${DATA}/util.${SECS}
+curl -s 'http://vigilant.sn17:8480/api/v1/query?query=nvidia_gpu_jobUid'     > ${DATA}/uid.${SECS}
+curl -s 'http://vigilant.sn17:8480/api/v1/query?query=nvidia_gpu_jobId'      > ${DATA}/jobid.${SECS}
 
 find ${DATA} -type f -mmin +70 -exec rm -f {} \;
 
 /usr/licensed/anaconda3/2020.11/bin/python /home/jdh4/bin/gpus/extract.py
 
-scp ${SBASE}/column.* tigercpu:${SBASE}
+timeout 5 scp -r /scratch/.gpudash della8:/scratch/
 ```
 
 `extract.py` creates the "column" files for the gpudash command and it appends the latest data to `utilization.json`. `checkgpu` looks at `utilization.json`. `extract.py` lives in `https://github.com/jdh4/gpudash`
@@ -85,12 +84,12 @@ The code produces a line like:
 Active GPUs/Idle GPUs/No Info = 60.8%/38.0%/1.2%
 ```
 
-The code produces the line above assuming that all the GPUs are online. Tiger has 320 GPUs, Della-GPU 40 and Traverse 184. "No Info" correponds to down nodes and cases where vigilant fails to produce data.
+The code produces the line above assuming that all the GPUs are online. Della has 320 GPUs and Traverse 184. "No Info" correponds to down nodes and cases where vigilant fails to produce data.
 
 
 ### Notes
 
-For `jdh4`, `checkgpu` is not developed in `/tigress/jdh4/python-devel/`. To get checkgpu on della, tiger and traverse:
+For `jdh4`, `checkgpu` is not developed in `/tigress/jdh4/python-devel/`. To get checkgpu on della and traverse:
 
 ```
 wget https://raw.githubusercontent.com/jdh4/tigergpu_visualization/master/checkgpu
