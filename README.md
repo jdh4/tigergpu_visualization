@@ -86,6 +86,39 @@ Active GPUs/Idle GPUs/No Info = 60.8%/38.0%/1.2%
 
 The code produces the line above assuming that all the GPUs are online. Della has 320 GPUs and Traverse 184. "No Info" correponds to down nodes and cases where vigilant fails to produce data.
 
+### MIG
+
+```
+[jdh4@della-gpu .gpudash]$ grep '"della-l01g1"' *
+column.1:{"timestamp": "1675260602", "host": "della-l01g1", "index": "0", "user": "root", "util": "N/A", "jobid": "0"}
+column.1:{"timestamp": "1675260602", "host": "della-l01g1", "index": "1", "user": "root", "util": "N/A", "jobid": "0"}
+column.1:{"timestamp": "1675260602", "host": "della-l01g1", "index": "2", "user": "root", "util": "N/A", "jobid": "0"}
+column.1:{"timestamp": "1675260602", "host": "della-l01g1", "index": "3", "user": "root", "util": "N/A", "jobid": "0"}
+column.2:{"timestamp": "1675261202", "host": "della-l01g1", "index": "0", "user": "root", "util": "N/A", "jobid": "0"}
+column.2:{"timestamp": "1675261202", "host": "della-l01g1", "index": "1", "user": "root", "util": "N/A", "jobid": "0"}
+column.2:{"timestamp": "1675261202", "host": "della-l01g1", "index": "2", "user": "root", "util": "N/A", "jobid": "0"}
+column.2:{"timestamp": "1675261202", "host": "della-l01g1", "index": "3", "user": "root", "util": "N/A", "jobid": "0"}
+column.3:{"timestamp": "1675261802", "host": "della-l01g1", "index": "0", "user": "root", "util": "N/A", "jobid": "0"}
+column.3:{"timestamp": "1675261802", "host": "della-l01g1", "index": "1", "user": "root", "util": "N/A", "jobid": "0"}
+column.3:{"timestamp": "1675261802", "host": "della-l01g1", "index": "2", "user": "root", "util": "N/A", "jobid": "0"}
+column.3:{"timestamp": "1675261802", "host": "della-l01g1", "index": "3", "user": "root", "util": "N/A", "jobid": "0"}
+column.4:{"timestamp": "1675262401", "host": "della-l01g1", "index": "0", "user": "root", "util": "N/A", "jobid": "0"}
+column.4:{"timestamp": "1675262401", "host": "della-l01g1", "index": "1", "user": "root", "util": "N/A", "jobid": "0"}
+column.4:{"timestamp": "1675262401", "host": "della-l01g1", "index": "2", "user": "root", "util": "N/A", "jobid": "0"}
+column.4:{"timestamp": "1675262401", "host": "della-l01g1", "index": "3", "user": "root", "util": "N/A", "jobid": "0"}
+column.5:{"timestamp": "1675263001", "host": "della-l01g1", "index": "0", "user": "root", "util": "N/A", "jobid": "0"}
+column.5:{"timestamp": "1675263001", "host": "della-l01g1", "index": "1", "user": "root", "util": "N/A", "jobid": "0"}
+column.5:{"timestamp": "1675263001", "host": "della-l01g1", "index": "2", "user": "root", "util": "N/A", "jobid": "0"}
+column.5:{"timestamp": "1675263001", "host": "della-l01g1", "index": "3", "user": "root", "util": "N/A", "jobid": "0"}
+column.6:{"timestamp": "1675263601", "host": "della-l01g1", "index": "0", "user": "root", "util": "N/A", "jobid": "0"}
+column.6:{"timestamp": "1675263601", "host": "della-l01g1", "index": "1", "user": "root", "util": "N/A", "jobid": "0"}
+column.6:{"timestamp": "1675263601", "host": "della-l01g1", "index": "2", "user": "root", "util": "N/A", "jobid": "0"}
+column.6:{"timestamp": "1675263601", "host": "della-l01g1", "index": "3", "user": "root", "util": "N/A", "jobid": "0"}
+column.7:{"timestamp": "1675264202", "host": "della-l01g1", "index": "0", "user": "root", "util": "N/A", "jobid": "0"}
+column.7:{"timestamp": "1675264202", "host": "della-l01g1", "index": "1", "user": "root", "util": "N/A", "jobid": "0"}
+column.7:{"timestamp": "1675264202", "host": "della-l01g1", "index": "2", "user": "root", "util": "N/A", "jobid": "0"}
+column.7:{"timestamp": "1675264202", "host": "della-l01g1", "index": "3", "user": "root", "util": "N/A", "jobid": "0"}
+```
 
 ### Notes
 
