@@ -246,6 +246,15 @@ def get_position(netid):
     return "UNKNOWN"
 
 def clean_position(position, level=0):
+  if level == 3:
+    if position.startswith("U20") or "Alumni (U" in position or position == "U":
+      position = "Undergrad"
+    if "formerly G" in position or "Alumni (G" in position:
+      position = "Graduate"
+    if position in [f"G{n}" for n in range(1, 10)]:
+      position = "Graduate"
+    position = position.split(" (")[0]
+    return position
   position = position.split(" (")[0]
   if position in ("RCU", "DCU", "RU", "XDCU"):
     position = "RCU/DCU/RU"
