@@ -253,6 +253,8 @@ def clean_position(position, level=0):
       position = "Graduate"
     if position in [f"G{n}" for n in range(1, 10)]:
       position = "Graduate"
+    if position == "XStaff":
+       position = "Staff"
     position = position.split(" (")[0]
     return position
   position = position.split(" (")[0]
