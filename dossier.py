@@ -155,6 +155,8 @@ def get_position(netid):
   emeritus = False
   staff = False
   postdoc_in_title = False
+  prof_in_title = False
+  lecturer = False
   graduate = False
   Gx = ""
   undergraduate = False
@@ -174,10 +176,12 @@ def get_position(netid):
     if line.startswith("#"): continue
     line = line.lower()
     if "pustatus: fac" in line or "puaffiliation: fac" in line or ("professor" in line and "title" in line): faculty = True
+    if "professor" in line and "title:" in line: prof_in_title = True
     if "pustatus: eme" in line: emeritus = True
+    if "lecturer" in line and "title:" in line: lecturer = True
     if "pustatus: stf" in line or "puaffiliation: stf" in line: staff = True
-    if "postdoc" in line and "title" in line: postdoc_in_title = True
-    if "visit" in line and "title" in line: visitor = True
+    if "postdoc" in line and "title:" in line: postdoc_in_title = True
+    if "visit" in line and "title:" in line: visitor = True
     if "pustatus: graduate" in line: graduate = True
     if "puacademiclevel" in line and any([f" g{yr}" in line for yr in range(1, 10)]): Gx = line.split()[-1]
     if "pustatus: undergraduate" in line: undergraduate = True
@@ -194,12 +198,22 @@ def get_position(netid):
     if "pustatus: ret" in line: retired = True
     if ("intern" in line or "assist" in line) and "title" in line: intern_or_assist = True
 
+  # cleaning
+  if faculty and postdoc_in_title and not prof_in_title:
+    faculty = False
+  if faculty and lecturer and not prof_in_title:
+    faculty = False
+	
   other = [rcu, dcu, ru, xdcu, sps, xstf, cas]
   #TDO: fv4 and maybe with affiliate
   if faculty:
     return "Faculty"
   elif emeritus:
     return "Faculty (emeritus)"
+  if lecturer and postdoc_in_title:
+    return "Lecturer and Postdoc"
+  elif lecturer:
+    return "Lecturer"
   elif staff and not postdoc_in_title and not visitor:
     return "Staff"
   elif staff and not postdoc_in_title and visitor:
