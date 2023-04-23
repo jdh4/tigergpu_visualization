@@ -281,7 +281,7 @@ def get_position_from_lines(lines):
     return "UNKNOWN"
 
 def clean_position(position, level=0):
-  """Level 3: Faculty, Staff, Postdoc, Graduate, Undergraduate
+  """Level 3: Faculty, Staff, DCU/RCU/RU, Postdoc, Graduate, Undergraduate."""
   if level == 3:
     if position.startswith("U20") or "Alumni (U" in position or position == "U":
       position = "Undergrad"
@@ -297,12 +297,12 @@ def clean_position(position, level=0):
     if "XFaculty" in position:
       position = "Faculty"
     if any([p in position for p in ("RCU", "DCU", "RU", "XDCU")]):
-      position = "RCU/DCU/RU"
+      position = "DCU/RCU/RU"
     position = position.split(" (")[0]
     return position
   position = position.split(" (")[0]
   if position in ("RCU", "DCU", "RU", "XDCU"):
-    position = "RCU/DCU/RU"
+    position = "DCU/RCU/RU"
   if level == 2:
     if position.startswith("U20"):
       position = "Undergrad"
