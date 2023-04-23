@@ -177,8 +177,8 @@ def get_position(netid):
   for line in lines:
     if line.startswith("#"): continue
     line = line.lower()
-    if "pustatus: fac" in line or "puaffiliation: fac" in line or ("professor" in line and "title" in line): faculty = True
     if "professor" in line and "title:" in line: prof_in_title = True
+    if ("pustatus: fac" in line or "puaffiliation: fac" in line) or prof_in_title: faculty = True
     if "puaffiliation: xfac" in line or "pustatus: xfac" in line: xfaculty = True
     if "pustatus: eme" in line: emeritus = True
     if "lecturer" in line and "title:" in line: lecturer = True
@@ -280,14 +280,18 @@ def clean_position(position, level=0):
       position = "Graduate"
     if position in [f"G{n}" for n in range(1, 10)]:
       position = "Graduate"
-    if position == "XStaff":
-       position = "Staff"
+    if any([p in position for p in ("XStaff", "Casual", "Scholar", "Lecturer")]):
+      position = "Staff"
+    if "Lecturer and Postdoc" in position:
+      position = "Postdoc"
+    if "XFaculty" in position:
+      position = "Faculty"
     position = position.split(" (")[0]
     return position
   position = position.split(" (")[0]
   if position in ("RCU", "DCU", "RU", "XDCU"):
     position = "RCU/DCU/RU"
-  if level==2:
+  if level == 2:
     if position.startswith("U20"):
       position = "Undergrad"
     if position in [f"G{n}" for n in range(1, 10)]:
