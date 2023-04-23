@@ -150,7 +150,9 @@ def get_position(netid):
     return ""
   lines = output.stdout.decode("utf-8").split('\n')
   if lines != [] and lines[-1] == "": lines = lines[:-1]
+  return get_position_from_lines(lines)
 
+def get_position_from_lines(lines):
   faculty = False
   xfaculty = False
   emeritus = False
@@ -159,8 +161,11 @@ def get_position(netid):
   prof_in_title = False
   lecturer = False
   scholar = False
+  collaborator = False
+  fellow = False
   graduate = False
   Gx = ""
+  gradaccept = False
   undergraduate = False
   Ux = ""
   rcu = False
@@ -183,11 +188,14 @@ def get_position(netid):
     if "pustatus: eme" in line: emeritus = True
     if "lecturer" in line and "title:" in line: lecturer = True
     if "research scholar" in line and "title:" in line: scholar = True
+    if "collaborator" in line and "title:" in line: collaborator = True
+    if "fellow" in line and "title:" in line: fellow = True
     if "pustatus: stf" in line or "puaffiliation: stf" in line: staff = True
     if "postdoc" in line and "title:" in line: postdoc_in_title = True
     if "visit" in line and "title:" in line: visitor = True
     if "pustatus: graduate" in line: graduate = True
     if "puacademiclevel" in line and any([f" g{yr}" in line for yr in range(1, 10)]): Gx = line.split()[-1]
+    if "pustatus: gradaccept" in line: gradaccept = True
     if "pustatus: undergraduate" in line: undergraduate = True
     if "undergraduate class of" in line: Ux = line.split()[-1]  # or use puclassyear
     if "pustatus: rcu" in line or "puaffiliation: rcu" in line: rcu = True
@@ -208,9 +216,9 @@ def get_position(netid):
   if faculty and lecturer and not prof_in_title:
     faculty = False
   visiting = " (visiting)" if visitor else ""
+  former_gx = f" (formerly {Gx.upper()})" if Gx else ""
 
   other = [rcu, dcu, ru, xdcu, sps, xstf, cas]
-  #TDO: fv4 and maybe with affiliate
   if faculty and not xfaculty and not emeritus:
     return f"Faculty{visiting}"
   elif xfaculty and not emeritus:
@@ -223,6 +231,10 @@ def get_position(netid):
     return f"Lecturer{visiting}"
   elif scholar:
     return f"Scholar{visiting}"
+  elif collaborator:
+    return f"Collaborator{visiting}{former_gx}"
+  elif fellow and not postdoc_in_title:
+    return f"Fellow{visiting}"
   elif staff and not postdoc_in_title:
     return f"Staff{visiting}"
   elif staff and postdoc_in_title:
@@ -230,9 +242,9 @@ def get_position(netid):
   elif graduate and Gx and not alumg:
     return Gx.upper()
   elif graduate and Gx and alumg:
-    return f"Alumni ({Gx.upper()})"
+    return f"Alumni{former_gx}"
   elif Gx and alumg and not any(other):
-    return f"Alumni ({Gx.upper()})"
+    return f"Alumni{former_gx}"
   elif Gx and not alumg and not any(other):
     return f"{Gx.upper()}"
   elif graduate:
@@ -243,32 +255,24 @@ def get_position(netid):
     return f"Alumni (U{Ux})"
   elif undergraduate or Ux:
     return f"U{Ux}"
-  elif rcu and Gx:
-    return f"RCU (formerly {Gx.upper()})"
-  elif rcu and not Gx:
-    return f"RCU"
-  elif dcu and Gx:
-    return f"DCU (formerly {Gx.upper()})"
-  elif dcu and not Gx:
-    return f"DCU"
+  elif rcu:
+    return f"RCU{visiting}{former_gx}"
+  elif dcu:
+    return f"DCU{visiting}{former_gx}"
   elif ru:
-    return "RU"
+    return f"RU{visiting}{former_gx}"
   elif xdcu:
-    return "XDCU"
+    return f"XDCU{visiting}{former_gx}"
   elif sps:
     return "SPS"
   elif xstf:
     return "XStaff"
-  elif cas and Gx:  # not using intern_or_assist
-    return f"Casual (formerly {Gx.upper()})"
   elif cas:
-    return "Casual"
-  elif ru:
-    return "RU"
-  elif sps:
-    return "SPS"
+    return f"Casual{former_gx}"
   elif retired:
     return "Retired"
+  elif gradaccept:
+    return "G0"
   else:
     return "UNKNOWN"
 
@@ -280,7 +284,8 @@ def clean_position(position, level=0):
       position = "Graduate"
     if position in [f"G{n}" for n in range(1, 10)]:
       position = "Graduate"
-    if any([p in position for p in ("XStaff", "Casual", "Scholar", "Lecturer")]):
+    others = ("XStaff", "Casual", "Scholar", "Lecturer", "Collaborator", "Fellow")
+    if any([p in position for p in others]):
       position = "Staff"
     if "Lecturer and Postdoc" in position:
       position = "Postdoc"
