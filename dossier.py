@@ -166,6 +166,7 @@ def get_position(netid):
   sps = False
   xstf = False
   cas = False
+  retired = False
   intern_or_assist = False
   alumg = False
   visitor = False
@@ -190,6 +191,7 @@ def get_position(netid):
     if "pustatus: xmiscaffil" in line: return "XMiscAffil"
     if "pustatus: alumg" in line: alumg = True
     if "pustatus: cas" in line: cas = True
+    if "pustatus: ret" in line: retired = True
     if ("intern" in line or "assist" in line) and "title" in line: intern_or_assist = True
 
   other = [rcu, dcu, ru, xdcu, sps, xstf, cas]
@@ -244,6 +246,8 @@ def get_position(netid):
     return "RU"
   elif sps:
     return "SPS"
+  elif retired:
+    return "Retired"
   else:
     return "UNKNOWN"
 
