@@ -164,6 +164,7 @@ def get_position_from_lines(lines):
   collaborator = False
   fellow = False
   graduate = False
+  xgraduate = False
   Gx = ""
   gradaccept = False
   undergraduate = False
@@ -194,6 +195,7 @@ def get_position_from_lines(lines):
     if "postdoc" in line and "title:" in line: postdoc_in_title = True
     if "visit" in line and "title:" in line: visitor = True
     if "pustatus: graduate" in line: graduate = True
+    if "puaffiliation: xgraduate" in line or "pustatus: xgraduate" in line: xgraduate = True
     if "puacademiclevel" in line and any([f" g{yr}" in line for yr in range(1, 10)]): Gx = line.split()[-1]
     if "pustatus: gradaccept" in line: gradaccept = True
     if "pustatus: undergraduate" in line: undergraduate = True
@@ -239,6 +241,8 @@ def get_position_from_lines(lines):
     return f"Staff{visiting}"
   elif staff and postdoc_in_title:
     return "Postdoc"
+  elif xgraduate:
+    return f"XGraduate{former_gx}"
   elif graduate and Gx and not alumg:
     return Gx.upper()
   elif graduate and Gx and alumg:
@@ -277,10 +281,11 @@ def get_position_from_lines(lines):
     return "UNKNOWN"
 
 def clean_position(position, level=0):
+  """Level 3: Faculty, Staff, Postdoc, Graduate, Undergraduate
   if level == 3:
     if position.startswith("U20") or "Alumni (U" in position or position == "U":
       position = "Undergrad"
-    if "formerly G" in position or "Alumni (G" in position:
+    if "Alumni (G" in position or "XGraduate" in position:
       position = "Graduate"
     if position in [f"G{n}" for n in range(1, 10)]:
       position = "Graduate"
@@ -291,6 +296,8 @@ def clean_position(position, level=0):
       position = "Postdoc"
     if "XFaculty" in position:
       position = "Faculty"
+    if any([p in position for p in ("RCU", "DCU", "RU", "XDCU")]):
+      position = "RCU/DCU/RU"
     position = position.split(" (")[0]
     return position
   position = position.split(" (")[0]
