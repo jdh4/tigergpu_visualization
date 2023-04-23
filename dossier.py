@@ -157,6 +157,7 @@ def get_position(netid):
   postdoc_in_title = False
   prof_in_title = False
   lecturer = False
+  #Associate Research Scholar (see snastase)
   graduate = False
   Gx = ""
   undergraduate = False
@@ -206,14 +207,14 @@ def get_position(netid):
 	
   other = [rcu, dcu, ru, xdcu, sps, xstf, cas]
   #TDO: fv4 and maybe with affiliate
-  if faculty:
+  if faculty and not emeritus:
     return "Faculty"
   elif emeritus:
     return "Faculty (emeritus)"
   if lecturer and postdoc_in_title:
     return "Lecturer and Postdoc"
   elif lecturer:
-    return "Lecturer"
+    return "Lecturer" if not visitor else "Lecturer (visitor)"
   elif staff and not postdoc_in_title and not visitor:
     return "Staff"
   elif staff and not postdoc_in_title and visitor:
