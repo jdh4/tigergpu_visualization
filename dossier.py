@@ -158,7 +158,7 @@ def get_position(netid):
   postdoc_in_title = False
   prof_in_title = False
   lecturer = False
-  #Associate Research Scholar (see snastase)
+  scholar = False
   graduate = False
   Gx = ""
   undergraduate = False
@@ -182,6 +182,7 @@ def get_position(netid):
     if "puaffiliation: xfac" in line or "pustatus: xfac" in line: xfaculty = True
     if "pustatus: eme" in line: emeritus = True
     if "lecturer" in line and "title:" in line: lecturer = True
+    if "research scholar" in line and "title:" in line: scholar = True
     if "pustatus: stf" in line or "puaffiliation: stf" in line: staff = True
     if "postdoc" in line and "title:" in line: postdoc_in_title = True
     if "visit" in line and "title:" in line: visitor = True
@@ -220,6 +221,8 @@ def get_position(netid):
     return "Lecturer and Postdoc"
   elif lecturer:
     return f"Lecturer{visiting}"
+  elif scholar:
+    return f"Scholar{visiting}"
   elif staff and not postdoc_in_title:
     return f"Staff{visiting}"
   elif staff and postdoc_in_title:
