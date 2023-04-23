@@ -152,6 +152,7 @@ def get_position(netid):
   if lines != [] and lines[-1] == "": lines = lines[:-1]
 
   faculty = False
+  xfaculty = False
   emeritus = False
   staff = False
   postdoc_in_title = False
@@ -178,6 +179,7 @@ def get_position(netid):
     line = line.lower()
     if "pustatus: fac" in line or "puaffiliation: fac" in line or ("professor" in line and "title" in line): faculty = True
     if "professor" in line and "title:" in line: prof_in_title = True
+    if "puaffiliation: xfac" in line or "pustatus: xfac" in line: xfaculty = True
     if "pustatus: eme" in line: emeritus = True
     if "lecturer" in line and "title:" in line: lecturer = True
     if "pustatus: stf" in line or "puaffiliation: stf" in line: staff = True
@@ -204,21 +206,22 @@ def get_position(netid):
     faculty = False
   if faculty and lecturer and not prof_in_title:
     faculty = False
-	
+  visiting = " (visiting)" if visitor else ""
+
   other = [rcu, dcu, ru, xdcu, sps, xstf, cas]
   #TDO: fv4 and maybe with affiliate
-  if faculty and not emeritus:
-    return "Faculty"
+  if faculty and not xfaculty and not emeritus:
+    return f"Faculty{visiting}"
+  elif xfaculty and not emeritus:
+    return "XFaculty"
   elif emeritus:
     return "Faculty (emeritus)"
-  if lecturer and postdoc_in_title:
+  elif lecturer and postdoc_in_title:
     return "Lecturer and Postdoc"
   elif lecturer:
-    return "Lecturer" if not visitor else "Lecturer (visitor)"
-  elif staff and not postdoc_in_title and not visitor:
-    return "Staff"
-  elif staff and not postdoc_in_title and visitor:
-    return "Staff (visitor)"
+    return f"Lecturer{visiting}"
+  elif staff and not postdoc_in_title:
+    return f"Staff{visiting}"
   elif staff and postdoc_in_title:
     return "Postdoc"
   elif graduate and Gx and not alumg:
