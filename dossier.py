@@ -219,13 +219,15 @@ def get_position_from_lines(lines):
     faculty = False
   if faculty and lecturer and not prof_in_title:
     faculty = False
+  if xfaculty and (postdoc_in_title or scholar):
+    xfaculty = False
   visiting = " (visiting)" if visitor else ""
   former_gx = f" (formerly {Gx.upper()})" if Gx else ""
 
   other = [rcu, dcu, ru, xdcu, sps, xstf, cas]
   if faculty and not xfaculty and not emeritus:
     return f"Faculty{visiting}"
-  elif xfaculty and not emeritus:
+  elif xfaculty and prof_in_title and not emeritus:
     return "XFaculty"
   elif emeritus:
     return "Faculty (emeritus)"
