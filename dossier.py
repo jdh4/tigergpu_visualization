@@ -242,9 +242,9 @@ def get_position_from_lines(lines):
   elif fellow and not postdoc_in_title:
     return f"Fellow{visiting}"
   elif staff and not postdoc_in_title:
-    return f"Staff{visiting}"
+    return f"Staff{visiting}{former_gx}"
   elif staff and postdoc_in_title:
-    return "Postdoc"
+    return f"Postdoc{visiting}{former_gx}"
   elif xgraduate:
     return f"XGraduate{former_gx}"
   elif graduate and Gx and not alumg:
@@ -279,6 +279,8 @@ def get_position_from_lines(lines):
     return f"Casual{former_gx}"
   elif retired:
     return "Retired"
+  elif alumg:
+    return f"Alumni{former_gx}"
   elif gradaccept:
     return "G0"
   else:
