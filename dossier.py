@@ -178,6 +178,7 @@ def get_position_from_lines(lines):
   sps = False
   xstf = False
   cas = False
+  stp = False
   retired = False
   intern_or_assist = False
   alumg = False
@@ -223,7 +224,7 @@ def get_position_from_lines(lines):
   visiting = " (visiting)" if visitor else ""
   former_gx = f" (formerly {Gx.upper()})" if Gx else ""
 
-  other = [rcu, dcu, ru, xdcu, sps, xstf, cas]
+  other = [rcu, dcu, ru, xdcu, sps, xstf, cas, stp]
   if faculty and prof_in_title and not emeritus:
     return f"Faculty{visiting}"
   elif xfaculty and prof_in_title and not emeritus:
@@ -233,13 +234,13 @@ def get_position_from_lines(lines):
   elif lecturer and postdoc_in_title:
     return "Lecturer and Postdoc"
   elif lecturer:
-    return f"Lecturer{visiting}"
+    return f"Lecturer{visiting}{former_gx}"
   elif scholar:
-    return f"Scholar{visiting}"
+    return f"Scholar{visiting}{former_gx}"
   elif collaborator:
     return f"Collaborator{visiting}{former_gx}"
   elif fellow and not postdoc_in_title:
-    return f"Fellow{visiting}"
+    return f"Fellow{visiting}{former_gx}"
   elif staff and not postdoc_in_title:
     return f"Staff{visiting}{former_gx}"
   elif staff and postdoc_in_title:
@@ -255,7 +256,7 @@ def get_position_from_lines(lines):
   elif Gx and not alumg and not any(other):
     return f"{Gx.upper()}"
   elif graduate:
-    return "Graduate"
+    return f"Graduate{former_gx}"
   elif undergraduate and Ux and not alumg:
     return f"U{Ux}"
   elif undergraduate and Ux and alumg:
@@ -271,11 +272,13 @@ def get_position_from_lines(lines):
   elif xdcu:
     return f"XDCU{visiting}{former_gx}"
   elif sps:
-    return "SPS"
+    return f"SPS{visiting}{former_gx}"
   elif xstf:
-    return "XStaff"
+    return f"XStaff{visiting}{former_gx}"
   elif cas:
     return f"Casual{former_gx}"
+  elif stp:
+    return f"Professional{former_gx}"
   elif retired:
     return "Retired"
   elif alumg:
