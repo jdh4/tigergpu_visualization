@@ -186,8 +186,8 @@ def get_position_from_lines(lines):
     if line.startswith("#"): continue
     line = line.lower()
     if "professor" in line and "title:" in line: prof_in_title = True
-    if ("pustatus: fac" in line or "puaffiliation: fac" in line) or prof_in_title: faculty = True
-    if "puaffiliation: xfac" in line or "pustatus: xfac" in line: xfaculty = True
+    if "pustatus: fac" in line or "puaffiliation: fac" in line: faculty = True
+    if "pustatus: xfac" in line or "puaffiliation: xfac" in line: xfaculty = True
     if "pustatus: eme" in line: emeritus = True
     if "lecturer" in line and "title:" in line: lecturer = True
     if "research scholar" in line and "title:" in line: scholar = True
@@ -215,17 +215,16 @@ def get_position_from_lines(lines):
     if ("intern" in line or "assist" in line) and "title" in line: intern_or_assist = True
 
   # cleaning
-  if faculty and postdoc_in_title and not prof_in_title:
+  if faculty and (postdoc_in_title or lecturer or scholar) and not prof_in_title:
     faculty = False
-  if faculty and lecturer and not prof_in_title:
-    faculty = False
-  if xfaculty and (postdoc_in_title or scholar):
+  if xfaculty and (postdoc_in_title or lecturer or scholar):
     xfaculty = False
+
   visiting = " (visiting)" if visitor else ""
   former_gx = f" (formerly {Gx.upper()})" if Gx else ""
 
   other = [rcu, dcu, ru, xdcu, sps, xstf, cas]
-  if faculty and not xfaculty and not emeritus:
+  if faculty and prof_in_title and not emeritus:
     return f"Faculty{visiting}"
   elif xfaculty and prof_in_title and not emeritus:
     return "XFaculty"
