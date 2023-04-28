@@ -1,3 +1,13 @@
+# dosssier
+
+```bash
+$ ssh jdh4@tigergpu.princeton.edu
+$ grs/python-devel
+$ git clone git@github.com:jdh4/tigergpu_visualization.git
+$ cd tigergpu_visualization
+$ python -uB -m unittest tests/test_dossier.py -v
+```
+
 # checkgpu
 
 The `checkgpu` command shows the mean GPU utilization and overall usage by user, department or sponsor. This command is available on della and traverse.
