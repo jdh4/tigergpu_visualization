@@ -371,6 +371,9 @@ def ldap_plus(netids: list, level=0) -> list:
            df = pd.DataFrame(dossier.ldap_plus(netids))
            headers = df.iloc[0]
            df = pd.DataFrame(df.values[1:], columns=headers)
+           dept = df.DEPT.value_counts().reset_index()
+           dept.index += 1
+           print(dept.rename(columns={"index":"Dept", "DEPT":"Count"}))
     """
     columns = ['NAME',
                'DEPT',
