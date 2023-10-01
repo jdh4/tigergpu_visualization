@@ -335,7 +335,7 @@ def get_position_from_lines(lines: list) -> str:
     elif gradaccept:
         return "G0"
     elif instructor:
-        retrun f"Instructor{visiting}{former_gx}"
+        return f"Instructor{visiting}{former_gx}"
     else:
         return "UNKNOWN"
 
