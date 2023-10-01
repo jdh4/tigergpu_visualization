@@ -218,6 +218,7 @@ def get_position_from_lines(lines: list) -> str:
     alumg = False
     visitor = False
     sta = False
+    instrutor = False
     for line in lines:
         if line.startswith("#"): continue
         line = line.lower()
@@ -253,6 +254,7 @@ def get_position_from_lines(lines: list) -> str:
         if "pustatus: stp" in line: stp = True
         if "pustatus: shorttermaffiliate" in line: sta = True
         if ("intern" in line or "assist" in line) and "title" in line: intern_or_assist = True
+        if "instructor" in line: instructor = True
 
     # cleaning
     if faculty and (postdoc_in_title or lecturer or scholar) and not prof_in_title:
@@ -332,6 +334,8 @@ def get_position_from_lines(lines: list) -> str:
         return f"XMiscAffil{visiting}{former_gx}"
     elif gradaccept:
         return "G0"
+    elif instructor:
+        retrun f"Instructor{visiting}{former_gx}"
     else:
         return "UNKNOWN"
 
