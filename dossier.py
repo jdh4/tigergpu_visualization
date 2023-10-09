@@ -218,7 +218,7 @@ def get_position_from_lines(lines: list) -> str:
     alumg = False
     visitor = False
     sta = False
-    instrutor = False
+    instructor = False
     for line in lines:
         if line.startswith("#"): continue
         line = line.lower()
