@@ -2,7 +2,8 @@ import subprocess
 from collections import defaultdict
 from base64 import b64decode
 
-depts = {'Advanced Projects, Princeton Plasma Physics Laboratory':'PPPL',
+depts = {'Admission':'ADMISSION',
+'Advanced Projects, Princeton Plasma Physics Laboratory':'PPPL',
 'Applied and Computational Mathematics':'PACM',
 'Andlinger Center for Energy and the Environment':'ACEE',
 'Analytics & Data Management, University Advancement':'ANALYTICS',
