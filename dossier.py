@@ -422,6 +422,14 @@ def ldap_plus(netids: list, level=0) -> list:
            dept = df.DEPT.value_counts().reset_index()
            dept.index += 1
            print(dept.rename(columns={"index":"Dept", "DEPT":"Count"}))
+
+           # wget https://raw.githubusercontent.com/PrincetonUniversity/monthly_sponsor_reports/refs/heads/main/sponsor.py
+           import sponsor
+           df["sponsor_dict"] = df.NETID_TRUE.apply(sponsor.get_sponsor_netid_per_cluster_dict_from_ldap)
+           df["sponsor"] = df.sponsor_dict.apply(lambda d: d["della"])
+           df["SPONSOR_NAME"] = df.sponsor.apply(sponsor.get_full_name_from_ldap)
+           df.index += 1
+           df[["NAME", "NETID_TRUE", "DEPT", "POSITION", "SPONSOR_NAME"]]
     """
     columns = ['NAME',
                'DEPT',
