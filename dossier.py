@@ -419,14 +419,16 @@ def ldap_plus(netids: list, level=0) -> list:
            df = pd.DataFrame(dossier.ldap_plus(netids))
            headers = df.iloc[0]
            df = pd.DataFrame(df.values[1:], columns=headers)
+
+           # wget https://raw.githubusercontent.com/PrincetonUniversity/monthly_sponsor_reports/refs/heads/main/sponsor.py
+           import sponsor
+           df = sponsor.user_and_sponsor_with_dept(df, cluster="della")
+           print(df.to_string())
+
            df.to_csv("from_dossier.csv")
            dept = df.DEPT.value_counts().reset_index()
            dept.index += 1
            print(dept.rename(columns={"index":"Dept", "DEPT":"Count"}))
-
-           # wget https://raw.githubusercontent.com/PrincetonUniversity/monthly_sponsor_reports/refs/heads/main/sponsor.py
-           import sponsor
-           print(sponsor.user_and_sponsor_with_dept(df, cluster="della")
     """
     columns = ['NAME',
                'DEPT',
