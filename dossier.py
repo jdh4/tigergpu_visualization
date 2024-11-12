@@ -484,7 +484,7 @@ def ldap_plus(netids: list, level=0) -> list:
             # netid_true is the true netid while netid may be an alias
             netid_true = record['uid'][0]
             name = record['cn'][0] if record['cn'] != [] else ""
-            dept = record['ou'][0] if record['ou'] != [] else ""
+            dept = record['ou'][-1] if record['ou'] else ""
             resdept = record['puresidentdepartment'][0] if record['puresidentdepartment'] != [] else ""
             dept_code = get_dept_code(dept, resdept, netid_true)
             title = record['title'][0] if record['title'] != [] else ""
