@@ -163,8 +163,7 @@ depts = {'Admission':'ADMISSION',
 'University Services':'UNIV-SERVICES',
 'Unspecified Department':'UNSPECIFIED',
 'Vice President, Plasma Physics Lab':'PPPL',
-'Woodrow Wilson School':'WWS',
-': TmF0aW9uYWwgU3BoZXJpY2FsIFRva2FtYWsgRXhwZXJpbWVudCwgUHJpbmNldG9uIFBsYXNtY':'PPPL'}
+'Woodrow Wilson School':'WWS'}
 
 def get_full_title(lines: list) -> str:
     """Extract full title which may span multiple lines."""
