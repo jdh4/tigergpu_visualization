@@ -414,6 +414,8 @@ def get_dept_code(dept: str, resdept: str, user: str) -> str:
         return depts[resdept]
     elif dept in depts:
         return depts[dept]
+    elif "TmF0aW9uYWwgU3BoZXJpY2FsIFRva2FtYWsgRXhwZXJpbWVudCwgUHJpbmNldG9uIFBsYXNtY" in dept:
+        return "PPPL"
     else:
         print(f"No entry for {dept} or {resdept} in dossier.py for {user}")
         return "NOT_FOUND_IN_DOSSIER_DEPTS"
