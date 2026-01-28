@@ -267,7 +267,7 @@ def get_position_from_lines(lines: list) -> str:
     for line in lines:
         if line.startswith("#"): continue
         line = line.lower()
-        if "dean" in line and "title:" in line: dean = True
+        if "dean" in line.replace("of the Dean for", "") and "title:" in line: dean = True
         if "professor" in line and "title:" in line: prof_in_title = True
         if "pustatus: fac" in line or "puaffiliation: fac" in line: faculty = True
         if "edupersonaffiliation: faculty" in line: faculty_edu = True
