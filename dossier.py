@@ -3,6 +3,7 @@ from collections import defaultdict
 from base64 import b64decode
 
 depts = {'Admission':'ADMISSION',
+'Administrative Applications, Office of Information Technology':'OIT',
 'Adv-Data & Analytics, University Advancement':'UNIV-ADVANCE',
 'Advanced Projects, Princeton Plasma Physics Laboratory':'PPPL',
 'Applied and Computational Mathematics':'PACM',
@@ -139,6 +140,7 @@ depts = {'Admission':'ADMISSION',
 'Programs in Access & Opportunity':'ACCESS-OPP',
 'Program in Judaic Studies':'JUDAIC',
 'Program in Linguistics':'LINGUISTICS',
+'Program in Teacher Preparation':'TEACH-PREP',
 'Prospect, Engagement & Data Strategy, University Advancement':'UNIV-ADV',
 'Prospect Development and Research, University Advancement':'UNIV-ADV',
 'Psychology':'PSYCH',
